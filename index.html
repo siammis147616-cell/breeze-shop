@@ -336,7 +336,7 @@
                             <option ${o.status==='Cancelled'?'selected':''}>Cancelled</option>
                             <option ${o.status==='Refunded'?'selected':''}>Refunded</option>
                         </select>
-                        <textarea onchange="updateRow('${o.id}', {adminNote: this.value})" class="w-full border p-1 h-10 text-[9px]" placeholder="Add Private Note...">${o.adminNote || ''}</textarea>
+                        <textarea onblur="updateRow('${o.id}', {adminNote: this.value})" class="w-full border p-1 h-10 text-[9px]" placeholder="Add Private Note...">${o.adminNote || ''}</textarea>
                         <label class="flex items-center gap-2 text-red-600 font-bold mt-1 cursor-pointer">
                             <input type="checkbox" ${o.isRefunded?'checked':''} onchange="updateRow('${o.id}', {isRefunded: this.checked})"> 
                             <span>REFUNDED</span>
@@ -349,17 +349,35 @@
                 </div>`).join('');
         }
 
-        async function updateRow(id, obj) { 
-            const { error } = await _supabase.from('orders').update(obj).eq('id', id); 
-            if(error) alert("Update Failed: " + error.message);
-            loadData(); 
+        async function updateRow(rowId, updateObj) { 
+            console.log("Updating Row ID:", rowId, "With Data:", updateObj);
+            try {
+                const { error } = await _supabase.from('orders').update(updateObj).eq('id', rowId); 
+                if(error) {
+                    alert("Database Update Failed! Ensure columns exist and RLS is off.");
+                    console.error("Supabase Error:", error);
+                } else {
+                    console.log("Update Successful");
+                    loadData(); 
+                }
+            } catch (err) {
+                console.error("Critical JS Error during update:", err);
+            }
         }
 
-        async function deleteOrder(id) { 
+        async function deleteOrder(rowId) { 
             if(confirm("Permanently delete this order?")) { 
-                const { error } = await _supabase.from('orders').delete().eq('id', id); 
-                if(error) alert("Delete Failed: " + error.message);
-                loadData(); 
+                try {
+                    const { error } = await _supabase.from('orders').delete().eq('id', rowId); 
+                    if(error) {
+                        alert("Delete Failed! Check RLS settings.");
+                        console.error("Supabase Error:", error);
+                    } else {
+                        loadData(); 
+                    }
+                } catch (err) {
+                    console.error("Critical JS Error during delete:", err);
+                }
             } 
         }
 
