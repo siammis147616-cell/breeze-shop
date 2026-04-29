@@ -74,13 +74,16 @@
         <div id="checkout-form" class="space-y-3 border-t pt-4">
             <h3 class="text-[10px] font-black uppercase tracking-tighter">Shipping Information</h3>
             <input type="text" id="cust-name" placeholder="Full Name *" class="w-full border p-2 text-xs outline-none">
-            <input type="tel" id="cust-phone" maxlength="11" placeholder="Phone Number (11 Digits) *" class="w-full border p-2 text-xs outline-none">
+            <input type="tel" id="cust-phone" maxlength="11" pattern="[0-9]{11}" placeholder="Phone Number (11 Digits) *" class="w-full border p-2 text-xs outline-none">
             <select id="cust-division" class="w-full border p-2 text-xs bg-white">
                 <option value="">Select Division *</option><option>Barishal</option><option>Chattogram</option><option>Dhaka</option>
                 <option>Khulna</option><option>Mymensingh</option><option>Rajshahi</option><option>Rangpur</option><option>Sylhet</option>
             </select>
             <select id="cust-district" class="w-full border p-2 text-xs bg-white"><option value="">Select District *</option></select>
-            <div class="grid grid-cols-2 gap-2"><input type="text" id="cust-house" placeholder="House No. *"><input type="text" id="cust-road" placeholder="Road No. *"></div>
+            <div class="grid grid-cols-2 gap-2">
+                <input type="text" id="cust-house" placeholder="House No. *" class="border p-2 text-xs">
+                <input type="text" id="cust-road" placeholder="Road No. *" class="border p-2 text-xs">
+            </div>
             <textarea id="cust-details" placeholder="Detailed Address * (Area, Landmark)" class="w-full border p-2 text-xs h-16 outline-none"></textarea>
             <h3 class="text-[10px] font-black uppercase mt-4 text-red-600">Payment (01725805104)</h3>
             <div class="grid grid-cols-2 gap-2">
@@ -99,7 +102,7 @@
 
     <main class="admin-section max-w-[1600px] mx-auto p-6">
         <div class="flex justify-between items-center mb-8 border-b pb-4">
-            <h2 class="text-2xl font-black uppercase tracking-tighter">Admin Panel</h2>
+            <h2 class="text-2xl font-black uppercase tracking-tighter">Admin Control Center</h2>
             <button onclick="location.reload()" class="bg-red-500 text-white px-4 py-2 text-[10px] font-bold uppercase rounded">Logout</button>
         </div>
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -155,7 +158,6 @@
             renderAdmin();
         }
 
-        // NAVIGATION
         function attemptLogin() {
             if(document.getElementById('adm-user').value === 'admin' && document.getElementById('adm-pass').value === 'ad123min') { closeLogin(); showSection('admin'); } else { alert("Unauthorized"); }
         }
@@ -170,7 +172,6 @@
         function resetShop() { showSection('shop'); filteredItems = inventory; renderShop(); }
         function toggleCart() { document.getElementById('custom-cart').classList.toggle('open'); }
 
-        // RENDER SHOP
         function renderShop(items = filteredItems) {
             const grid = document.getElementById('shop-grid');
             grid.innerHTML = items.map(p => {
@@ -227,14 +228,14 @@
 
         async function placeOrder() {
             const phone = document.getElementById('cust-phone').value;
-            if(!/^\d{11}$/.test(phone)) return alert("Phone must be 11 digits.");
+            if(!/^\d{11}$/.test(phone)) return alert("Phone must be exactly 11 digits.");
             const o = {
                 orderID: `BRZ-${Date.now().toString().slice(-6)}`,
                 customer: document.getElementById('cust-name').value, phone,
-                address: `${document.getElementById('cust-house').value}, ${document.getElementById('cust-road').value}, ${document.getElementById('cust-details').value}, ${document.getElementById('cust-district').value}`,
+                address: `H:${document.getElementById('cust-house').value}, R:${document.getElementById('cust-road').value}, ${document.getElementById('cust-details').value}, ${document.getElementById('cust-district').value}, ${document.getElementById('cust-division').value}`,
                 items: [...cart], total: parseFloat(document.getElementById('grand-total').innerText),
                 method: document.getElementById('pay-method').value, trx: document.getElementById('pay-trx').value,
-                status: 'Order Received', isPaid: false
+                status: 'Order Received', adminNote: '', isRefunded: false, isPaid: false
             };
             const { error } = await _supabase.from('orders').insert([o]);
             if(!error) { alert("Order Placed!"); cart=[]; updateCartUI(); toggleCart(); loadData(); showSection('track'); }
@@ -249,44 +250,57 @@
                         <span class="bg-black text-white px-3 py-1 text-[9px] font-black uppercase rounded-full">${o.status}</span>
                     </div></div>
                     <div class="space-y-1 mb-2">${o.items.map(i => `<p>• ${i.name} (${i.size})</p>`).join('')}</div>
+                    ${o.adminNote ? `<div class="bg-stone-100 p-2 border-l-4 border-black mb-2 italic text-[10px]">Note: ${o.adminNote}</div>` : ''}
+                    ${o.isRefunded ? `<p class="text-green-600 font-bold mb-2">✓ Payment has been refunded</p>` : ''}
                     <p class="font-black border-t pt-2 text-sm">Total: ৳${o.total}</p>
                 </div>`).join('');
         }
 
-        // ADMIN PANEL
         function renderAdmin() {
             const q = document.getElementById('adminSearch')?.value.toLowerCase() || "";
-            document.getElementById('admin-product-list').innerHTML = inventory.filter(p => p.name.toLowerCase().includes(q)).map(p => `
+            document.getElementById('admin-product-list').innerHTML = inventory.filter(p => p.name.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q)).map(p => `
                 <div class="flex justify-between items-center text-[10px] bg-stone-50 p-2 border mb-1">
-                    <span><b>${p.brand}</b> ${p.name}</span>
+                    <span><b>${p.brand}</b> ${p.name} ${p.isStockOut ? '<span class="text-red-500 font-bold">[OUT]</span>' : ''}</span>
                     <div class="flex gap-2"><button onclick="editProduct('${p.id}')" class="underline">Edit</button><button onclick="deleteProduct('${p.id}')" class="text-red-500">Del</button></div>
                 </div>`).join('');
 
             document.getElementById('admin-order-list').innerHTML = orders.map(o => `
-                <div class="bg-white p-4 border text-[10px] grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div class="bg-white p-4 border text-[10px] grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 shadow-sm">
                     <div class="border-r pr-4">
                         <p class="font-black text-xs border-b pb-1 mb-1 text-blue-600">${o.orderID}</p>
-                        <p><b>Cust:</b> ${o.customer} (${o.phone})</p>
-                        <p><b>Address:</b> ${o.address}</p>
-                        <p><b>Payment:</b> ${o.method} - ${o.trx}</p>
+                        <p class="text-[11px]"><b>Customer:</b> <span class="bg-yellow-50">${o.customer}</span></p>
+                        <p class="text-[11px]"><b>Phone:</b> <span class="bg-yellow-50">${o.phone}</span></p>
+                        <p class="mt-1"><b>Address:</b><br><span class="italic text-stone-600">${o.address}</span></p>
+                        <p class="mt-2"><b>Payment:</b> ${o.method} - <b>${o.trx}</b></p>
                         <div class="mt-2 flex items-center gap-2">
                             <input type="checkbox" ${o.isPaid?'checked':''} onchange="updatePaid('${o.id}', this.checked)">
-                            <label class="font-bold ${o.isPaid ? 'text-green-600' : 'text-red-500'}">Mark Paid</label>
+                            <label class="font-bold ${o.isPaid ? 'text-green-600' : 'text-red-500'}">Mark as Paid</label>
                         </div>
                     </div>
                     <div>
-                        <select onchange="updateStatus('${o.id}', this.value)" class="border p-2 bg-stone-100 w-full mb-2 font-bold text-[9px] uppercase">
-                            <option ${o.status==='Order Received'?'selected':''}>Order Received</option>
-                            <option ${o.status==='Dispatched'?'selected':''}>Dispatched</option>
-                            <option ${o.status==='Complete'?'selected':''}>Complete</option>
-                        </select>
+                        <div class="flex gap-2 mb-2">
+                            <select onchange="updateStatus('${o.id}', this.value)" class="border p-2 bg-stone-100 flex-1 font-bold text-[9px] uppercase">
+                                <option ${o.status==='Order Received'?'selected':''}>Order Received</option>
+                                <option ${o.status==='Dispatched'?'selected':''}>Dispatched</option>
+                                <option ${o.status==='Complete'?'selected':''}>Complete</option>
+                                <option ${o.status==='Cancelled'?'selected':''}>Cancelled</option>
+                                <option ${o.status==='Refunded'?'selected':''}>Refunded</option>
+                            </select>
+                            <button onclick="deleteOrder('${o.id}')" class="bg-red-500 text-white px-2 rounded font-black">DEL</button>
+                        </div>
                         <div class="mb-2 max-h-24 overflow-y-auto border-b pb-2">${o.items.map(i=>`<p>• ${i.name} (${i.size})</p>`).join('')}</div>
-                        <button onclick="deleteOrder('${o.id}')" class="w-full bg-red-500 text-white py-1 rounded text-[8px]">DELETE ORDER</button>
+                        <textarea onchange="updateNote('${o.id}', this.value)" placeholder="Add note for customer..." class="w-full border p-1 mb-2 text-[9px] h-10">${o.adminNote || ''}</textarea>
+                        <label class="flex items-center gap-2 mb-2 text-red-600 font-bold">
+                            <input type="checkbox" ${o.isRefunded?'checked':''} onchange="updateRefund('${o.id}', this.checked)"> Refunded
+                        </label>
+                        <p class="font-black text-base text-right">৳${o.total}</p>
                     </div>
                 </div>`).join('');
         }
 
         async function updateStatus(id, stat) { await _supabase.from('orders').update({ status: stat }).eq('id', id); loadData(); }
+        async function updateNote(id, note) { await _supabase.from('orders').update({ adminNote: note }).eq('id', id); loadData(); }
+        async function updateRefund(id, val) { await _supabase.from('orders').update({ isRefunded: val }).eq('id', id); loadData(); }
         async function updatePaid(id, val) { await _supabase.from('orders').update({ isPaid: val }).eq('id', id); loadData(); }
         async function deleteOrder(id) { if(confirm("Delete?")) { await _supabase.from('orders').delete().eq('id', id); loadData(); } }
 
