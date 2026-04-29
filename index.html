@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Breeze | Luxury Decants</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         .admin-section, .order-tracking, .login-overlay { display: none; }
         body.admin-mode .admin-section { display: block; }
@@ -44,40 +45,6 @@
         </div>
     </header>
 
-    <div id="custom-cart" class="fixed right-0 top-0 h-full w-full sm:w-96 bg-white shadow-2xl p-6 flex flex-col overflow-y-auto">
-        <div class="flex justify-between items-center border-b pb-4 mb-4">
-            <h2 class="font-bold uppercase text-xs tracking-widest">Guest Checkout</h2>
-            <button onclick="toggleCart()" class="text-xs uppercase font-bold text-stone-400 hover:text-black">✕ Close</button>
-        </div>
-        <div id="cart-items" class="space-y-4 mb-6"></div>
-        <div id="checkout-form" class="space-y-3 border-t pt-4">
-            <h3 class="text-[10px] font-black uppercase tracking-tighter">Shipping Information</h3>
-            <input type="text" id="cust-name" placeholder="Full Name *" class="w-full border p-2 text-xs outline-none">
-            <input type="tel" id="cust-phone" maxlength="11" pattern="[0-9]{11}" placeholder="Phone Number (11 Digits) *" class="w-full border p-2 text-xs outline-none">
-            <select id="cust-division" class="w-full border p-2 text-xs bg-white">
-                <option value="">Select Division *</option>
-                <option>Barishal</option><option>Chattogram</option><option>Dhaka</option>
-                <option>Khulna</option><option>Mymensingh</option><option>Rajshahi</option>
-                <option>Rangpur</option><option>Sylhet</option>
-            </select>
-            <select id="cust-district" class="w-full border p-2 text-xs bg-white"><option value="">Select District *</option></select>
-            <div class="grid grid-cols-2 gap-2">
-                <input type="text" id="cust-house" placeholder="House No. *" class="border p-2 text-xs outline-none">
-                <input type="text" id="cust-road" placeholder="Road No. *" class="border p-2 text-xs outline-none">
-            </div>
-            <textarea id="cust-details" placeholder="Detailed Address * (Area, Landmark)" class="w-full border p-2 text-xs h-16 outline-none"></textarea>
-            <h3 class="text-[10px] font-black uppercase mt-4 text-red-600">Send Money (01725805104)</h3>
-            <div class="grid grid-cols-2 gap-2">
-                <select id="pay-method" class="border p-2 text-xs bg-white"><option>bKash</option><option>Nagad</option></select>
-                <input type="text" id="pay-trx" placeholder="Transaction ID *" class="w-full border p-2 text-xs bg-stone-50 font-bold outline-none">
-            </div>
-            <div class="border-t pt-4 mt-4 text-xs">
-                <div class="flex justify-between font-bold text-base mt-2 pt-2 border-t"><span>Total Amount:</span><span>৳<span id="grand-total">0</span></span></div>
-            </div>
-            <button onclick="placeOrder()" class="w-full bg-black text-white py-4 text-[10px] uppercase font-bold mt-4 tracking-widest">Confirm Order</button>
-        </div>
-    </div>
-
     <main class="shop-section max-w-[1600px] mx-auto p-4">
         <div class="mb-6 space-y-4 text-center">
             <input type="text" id="globalSearch" oninput="handleSearch()" placeholder="Search names, brands..." class="w-full max-w-2xl mx-auto block p-4 border rounded-full text-xs outline-none shadow-sm">
@@ -98,6 +65,33 @@
         </div>
     </main>
 
+    <div id="custom-cart" class="fixed right-0 top-0 h-full w-full sm:w-96 bg-white shadow-2xl p-6 flex flex-col overflow-y-auto">
+        <div class="flex justify-between items-center border-b pb-4 mb-4">
+            <h2 class="font-bold uppercase text-xs tracking-widest">Guest Checkout</h2>
+            <button onclick="toggleCart()" class="text-xs uppercase font-bold text-stone-400 hover:text-black">✕ Close</button>
+        </div>
+        <div id="cart-items" class="space-y-4 mb-6"></div>
+        <div id="checkout-form" class="space-y-3 border-t pt-4">
+            <h3 class="text-[10px] font-black uppercase tracking-tighter">Shipping Information</h3>
+            <input type="text" id="cust-name" placeholder="Full Name *" class="w-full border p-2 text-xs outline-none">
+            <input type="tel" id="cust-phone" maxlength="11" placeholder="Phone Number (11 Digits) *" class="w-full border p-2 text-xs outline-none">
+            <select id="cust-division" class="w-full border p-2 text-xs bg-white">
+                <option value="">Select Division *</option><option>Barishal</option><option>Chattogram</option><option>Dhaka</option>
+                <option>Khulna</option><option>Mymensingh</option><option>Rajshahi</option><option>Rangpur</option><option>Sylhet</option>
+            </select>
+            <select id="cust-district" class="w-full border p-2 text-xs bg-white"><option value="">Select District *</option></select>
+            <div class="grid grid-cols-2 gap-2"><input type="text" id="cust-house" placeholder="House No. *"><input type="text" id="cust-road" placeholder="Road No. *"></div>
+            <textarea id="cust-details" placeholder="Detailed Address * (Area, Landmark)" class="w-full border p-2 text-xs h-16 outline-none"></textarea>
+            <h3 class="text-[10px] font-black uppercase mt-4 text-red-600">Payment (01725805104)</h3>
+            <div class="grid grid-cols-2 gap-2">
+                <select id="pay-method" class="border p-2 text-xs"><option>bKash</option><option>Nagad</option></select>
+                <input type="text" id="pay-trx" placeholder="Transaction ID *" class="border p-2 text-xs bg-stone-50 font-bold outline-none">
+            </div>
+            <div class="flex justify-between font-bold text-base mt-4 pt-2 border-t"><span>Total:</span><span>৳<span id="grand-total">0</span></span></div>
+            <button onclick="placeOrder()" class="w-full bg-black text-white py-4 text-[10px] uppercase font-bold mt-4 tracking-widest">Confirm Order</button>
+        </div>
+    </div>
+
     <main class="order-tracking max-w-3xl mx-auto p-6">
         <h2 class="text-xl font-bold mb-6 uppercase tracking-tighter">My Orders</h2>
         <div id="customer-order-list" class="space-y-4"></div>
@@ -105,7 +99,7 @@
 
     <main class="admin-section max-w-[1600px] mx-auto p-6">
         <div class="flex justify-between items-center mb-8 border-b pb-4">
-            <h2 class="text-2xl font-black uppercase tracking-tighter">Admin Control Center</h2>
+            <h2 class="text-2xl font-black uppercase tracking-tighter">Admin Panel</h2>
             <button onclick="location.reload()" class="bg-red-500 text-white px-4 py-2 text-[10px] font-bold uppercase rounded">Logout</button>
         </div>
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -117,7 +111,7 @@
                     <input type="text" id="brand" placeholder="Brand" class="w-full border p-2" required>
                     <select id="season" class="w-full border p-2 bg-white"><option>Summer</option><option>Winter</option><option>Spring</option><option>Autumn</option></select>
                     <div class="flex items-center gap-2 p-2 bg-stone-100 border rounded">
-                        <input type="checkbox" id="isStockOut"> <label for="isStockOut" class="font-bold text-red-600 uppercase">Mark as Stock Out</label>
+                        <input type="checkbox" id="isStockOut"> <label for="isStockOut" class="font-bold text-red-600 uppercase">Stock Out</label>
                     </div>
                     <input type="text" id="profile" placeholder="Scent Notes" class="w-full border p-2">
                     <div class="grid grid-cols-3 gap-1">
@@ -144,16 +138,24 @@
 
     <script>
         // --- CONFIGURE YOUR KEYS HERE ---
-        const SUPABASE_URL = 'https://pcxwmgjsbvlyyedhjujc.supabase.co'; 
-        const SUPABASE_KEY = 'sb_publishable_UaeY_Kqvy5EZsDoL3nmuDQ_SW_0HrwS';
+        const SUPABASE_URL = 'YOUR_PROJECT_URL_HERE'; 
+        const SUPABASE_KEY = 'YOUR_ANON_KEY_HERE';
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        const DB_KEY = "BREEZE_VAL_V1"; const ORDER_KEY = "BREEZE_ORDERS_V1";
-        const districts = ["Bagerhat","Bandarban","Barguna","Barishal","Bhola","Bogra","Brahmanbaria","Chandpur","Chapai Nawabganj","Chattogram","Chuadanga","Comilla","Cox's Bazar","Dhaka","Dinajpur","Faridpur","Feni","Gaibandha","Gazipur","Gopalganj","Habiganj","Jamalpur","Jessore","Jhalokati","Jhenaidah","Joypurhat","Khagrachari","Khulna","Kishoreganj","Kurigram","Kushtia","Lakshmipur","Lalmonirhat","Madaripur","Magura","Manikganj","Meherpur","Moulvibazar","Munshiganj","Mymensingh","Naogaon","Narail","Narayanganj","Narsingdi","Natore","Netrokona","Nilphamari","Noakhali","Pabna","Panchagarh","Patuakhali","Pirojpur","Rajbari","Rajshahi","Rangamati","Rangpur","Satkhira","Shariatpur","Sherpur","Sirajganj","Sunamganj","Sylhet","Tangail","Thakurgaon"];
-        let inventory = JSON.parse(localStorage.getItem(DB_KEY)) || [];
-        let orders = JSON.parse(localStorage.getItem(ORDER_KEY)) || [];
-        let filteredItems = []; let cart = [];
-        const dSel = document.getElementById('cust-district'); districts.sort().forEach(d => dSel.add(new Option(d, d)));
 
+        const districts = ["Bagerhat","Bandarban","Barguna","Barishal","Bhola","Bogra","Brahmanbaria","Chandpur","Chapai Nawabganj","Chattogram","Chuadanga","Comilla","Cox's Bazar","Dhaka","Dinajpur","Faridpur","Feni","Gaibandha","Gazipur","Gopalganj","Habiganj","Jamalpur","Jessore","Jhalokati","Jhenaidah","Joypurhat","Khagrachari","Khulna","Kishoreganj","Kurigram","Kushtia","Lakshmipur","Lalmonirhat","Madaripur","Magura","Manikganj","Meherpur","Moulvibazar","Munshiganj","Mymensingh","Naogaon","Narail","Narayanganj","Narsingdi","Natore","Netrokona","Nilphamari","Noakhali","Pabna","Panchagarh","Patuakhali","Pirojpur","Rajbari","Rajshahi","Rangamati","Rangpur","Satkhira","Shariatpur","Sherpur","Sirajganj","Sunamganj","Sylhet","Tangail","Thakurgaon"];
+        let inventory = []; let orders = []; let filteredItems = []; let cart = [];
+
+        async function loadData() {
+            const { data: pData } = await _supabase.from('perfumes').select('*');
+            const { data: oData } = await _supabase.from('orders').select('*').order('created_at', { ascending: false });
+            if (pData) inventory = pData;
+            if (oData) orders = oData;
+            filteredItems = inventory;
+            renderShop();
+            renderAdmin();
+        }
+
+        // NAVIGATION
         function attemptLogin() {
             if(document.getElementById('adm-user').value === 'admin' && document.getElementById('adm-pass').value === 'ad123min') { closeLogin(); showSection('admin'); } else { alert("Unauthorized"); }
         }
@@ -168,11 +170,11 @@
         function resetShop() { showSection('shop'); filteredItems = inventory; renderShop(); }
         function toggleCart() { document.getElementById('custom-cart').classList.toggle('open'); }
 
+        // RENDER SHOP
         function renderShop(items = filteredItems) {
             const grid = document.getElementById('shop-grid');
             grid.innerHTML = items.map(p => {
                 const sz = Object.entries(p.prices).filter(([k,v]) => v && v > 0);
-                if(sz.length === 0) return '';
                 return `<div class="perfume-card bg-white border flex flex-col p-2 shadow-sm ${p.isStockOut ? 'opacity-60' : ''}">
                     <img src="${p.img}" class="w-full mb-2 bg-stone-100">
                     <p class="text-[8px] uppercase text-stone-400 font-black tracking-widest">${p.brand}</p>
@@ -180,9 +182,8 @@
                     <select id="size-${p.id}" class="text-[10px] border mb-2 bg-white p-1" ${p.isStockOut ? 'disabled' : ''}>
                         ${sz.map(([ml, pr]) => `<option value="${p.discount>0?Math.round(pr-(pr*p.discount/100)):pr}">${ml} - ৳${p.discount>0?Math.round(pr-(pr*p.discount/100)):pr}</option>`).join('')}
                     </select>
-                    ${p.isStockOut 
-                        ? `<button class="w-full bg-stone-300 text-stone-600 py-2 text-[9px] uppercase font-black cursor-not-allowed">Stock Out</button>` 
-                        : `<button onclick="addToCart('${p.id}')" class="w-full bg-black text-white py-2 text-[9px] uppercase font-black">Add to Bag</button>`}
+                    ${p.isStockOut ? `<button class="w-full bg-stone-300 text-stone-600 py-2 text-[9px] uppercase font-black cursor-not-allowed">Stock Out</button>` 
+                    : `<button onclick="addToCart('${p.id}')" class="w-full bg-black text-white py-2 text-[9px] uppercase font-black">Add to Bag</button>`}
                 </div>`;
             }).join('');
             renderBrandMenu();
@@ -224,35 +225,23 @@
         }
         function removeItem(idx) { cart.splice(idx, 1); updateCartUI(); }
 
-        function placeOrder() {
+        async function placeOrder() {
             const phone = document.getElementById('cust-phone').value;
-            if(!/^\d{11}$/.test(phone)) return alert("Mobile number must be exactly 11 digits.");
-            
-            const fields = {
-                name: document.getElementById('cust-name').value, phone,
-                div: document.getElementById('cust-division').value, dist: document.getElementById('cust-district').value,
-                house: document.getElementById('cust-house').value, road: document.getElementById('cust-road').value,
-                area: document.getElementById('cust-details').value, method: document.getElementById('pay-method').value,
-                trx: document.getElementById('pay-trx').value
-            };
-
-            if(Object.values(fields).some(v => v.trim() === "")) return alert("All fields are mandatory.");
-            if(cart.length === 0) return alert("Bag is empty.");
-
-            const t = new Date(); const dStr = t.getDate().toString().padStart(2,'0') + (t.getMonth()+1).toString().padStart(2,'0') + t.getFullYear().toString().slice(-2);
+            if(!/^\d{11}$/.test(phone)) return alert("Phone must be 11 digits.");
             const o = {
-                orderID: `BRZ-${dStr}-${(orders.filter(x => x.orderID.includes(dStr)).length + 1).toString().padStart(2, '0')}`,
-                dateTime: t.toLocaleString(), customer: fields.name, phone: fields.phone,
-                address: `H:${fields.house}, R:${fields.road}, ${fields.area}, ${fields.dist}, ${fields.div}`,
+                orderID: `BRZ-${Date.now().toString().slice(-6)}`,
+                customer: document.getElementById('cust-name').value, phone,
+                address: `${document.getElementById('cust-house').value}, ${document.getElementById('cust-road').value}, ${document.getElementById('cust-details').value}, ${document.getElementById('cust-district').value}`,
                 items: [...cart], total: parseFloat(document.getElementById('grand-total').innerText),
-                method: fields.method, trx: fields.trx, status: 'Order Received', adminNote: '', isRefunded: false, isPaid: false
+                method: document.getElementById('pay-method').value, trx: document.getElementById('pay-trx').value,
+                status: 'Order Received', isPaid: false
             };
-            orders.push(o); localStorage.setItem(ORDER_KEY, JSON.stringify(orders));
-            alert("Success! ID: " + o.orderID); cart = []; updateCartUI(); toggleCart(); showSection('track');
+            const { error } = await _supabase.from('orders').insert([o]);
+            if(!error) { alert("Order Placed!"); cart=[]; updateCartUI(); toggleCart(); loadData(); showSection('track'); }
         }
 
         function renderCustomerOrders() {
-            document.getElementById('customer-order-list').innerHTML = orders.slice().reverse().map(o => `
+            document.getElementById('customer-order-list').innerHTML = orders.map(o => `
                 <div class="bg-white p-5 border text-xs shadow-sm">
                     <div class="flex justify-between items-start mb-2"><p class="font-black text-stone-400 uppercase tracking-tighter">${o.orderID}</p>
                     <div class="flex gap-2">
@@ -260,69 +249,48 @@
                         <span class="bg-black text-white px-3 py-1 text-[9px] font-black uppercase rounded-full">${o.status}</span>
                     </div></div>
                     <div class="space-y-1 mb-2">${o.items.map(i => `<p>• ${i.name} (${i.size})</p>`).join('')}</div>
-                    ${o.adminNote ? `<div class="bg-stone-100 p-2 border-l-4 border-black mb-2 italic text-[10px]">Note: ${o.adminNote}</div>` : ''}
-                    ${o.isRefunded ? `<p class="text-green-600 font-bold mb-2">✓ Payment has been refunded</p>` : ''}
                     <p class="font-black border-t pt-2 text-sm">Total: ৳${o.total}</p>
                 </div>`).join('');
         }
 
+        // ADMIN PANEL
         function renderAdmin() {
             const q = document.getElementById('adminSearch')?.value.toLowerCase() || "";
-            document.getElementById('admin-product-list').innerHTML = inventory.filter(p => p.name.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q)).map(p => `
+            document.getElementById('admin-product-list').innerHTML = inventory.filter(p => p.name.toLowerCase().includes(q)).map(p => `
                 <div class="flex justify-between items-center text-[10px] bg-stone-50 p-2 border mb-1">
-                    <span><b>${p.brand}</b> ${p.name} ${p.isStockOut ? '<span class="text-red-500 font-bold">[STOCK OUT]</span>' : ''}</span>
+                    <span><b>${p.brand}</b> ${p.name}</span>
                     <div class="flex gap-2"><button onclick="editProduct('${p.id}')" class="underline">Edit</button><button onclick="deleteProduct('${p.id}')" class="text-red-500">Del</button></div>
                 </div>`).join('');
 
-            document.getElementById('admin-order-list').innerHTML = orders.slice().reverse().map(o => `
+            document.getElementById('admin-order-list').innerHTML = orders.map(o => `
                 <div class="bg-white p-4 border text-[10px] grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div class="border-r pr-4">
                         <p class="font-black text-xs border-b pb-1 mb-1 text-blue-600">${o.orderID}</p>
-                        <p class="text-[11px]"><b>Customer:</b> <span class="bg-yellow-50">${o.customer}</span></p>
-                        <p class="text-[11px]"><b>Phone:</b> <span class="bg-yellow-50">${o.phone}</span></p>
-                        <p class="mt-1"><b>Shipping Address:</b><br><span class="italic text-stone-600">${o.address}</span></p>
-                        <p class="mt-2"><b>Payment:</b> ${o.method} - <span class="font-bold">${o.trx}</span></p>
+                        <p><b>Cust:</b> ${o.customer} (${o.phone})</p>
+                        <p><b>Address:</b> ${o.address}</p>
+                        <p><b>Payment:</b> ${o.method} - ${o.trx}</p>
                         <div class="mt-2 flex items-center gap-2">
-                            <input type="checkbox" id="paid-${o.orderID}" ${o.isPaid?'checked':''} onchange="updatePaid('${o.orderID}', this.checked)">
-                            <label for="paid-${o.orderID}" class="font-bold ${o.isPaid ? 'text-green-600' : 'text-red-500'}">Mark as Paid</label>
+                            <input type="checkbox" ${o.isPaid?'checked':''} onchange="updatePaid('${o.id}', this.checked)">
+                            <label class="font-bold ${o.isPaid ? 'text-green-600' : 'text-red-500'}">Mark Paid</label>
                         </div>
                     </div>
                     <div>
-                        <div class="flex gap-2 mb-2">
-                            <select onchange="updateStatus('${o.orderID}', this.value)" class="border p-2 bg-stone-100 flex-1 font-bold text-[9px] uppercase">
-                                <option ${o.status==='Order Received'?'selected':''}>Order Received</option>
-                                <option ${o.status==='Dispatched'?'selected':''}>Dispatched</option>
-                                <option ${o.status==='Complete'?'selected':''}>Complete</option>
-                                <option ${o.status==='Cancelled'?'selected':''}>Cancelled</option>
-                                <option ${o.status==='Refunded'?'selected':''}>Refunded</option>
-                            </select>
-                            <button onclick="deleteOrder('${o.orderID}')" class="bg-red-500 text-white px-2 rounded font-black">DEL</button>
-                        </div>
-                        <div class="mb-2 max-h-24 overflow-y-auto border-b pb-2">
-                            ${o.items.map(i=>`<p>• ${i.name} (${i.size})</p>`).join('')}
-                        </div>
-                        <textarea onchange="updateNote('${o.orderID}', this.value)" placeholder="Add note for customer..." class="w-full border p-1 mb-2 text-[9px] h-10">${o.adminNote || ''}</textarea>
-                        <label class="flex items-center gap-2 mb-2 text-red-600 font-bold">
-                            <input type="checkbox" ${o.isRefunded?'checked':''} onchange="updateRefund('${o.orderID}', this.checked)"> Refunded
-                        </label>
-                        <p class="font-black text-base text-right">৳${o.total}</p>
+                        <select onchange="updateStatus('${o.id}', this.value)" class="border p-2 bg-stone-100 w-full mb-2 font-bold text-[9px] uppercase">
+                            <option ${o.status==='Order Received'?'selected':''}>Order Received</option>
+                            <option ${o.status==='Dispatched'?'selected':''}>Dispatched</option>
+                            <option ${o.status==='Complete'?'selected':''}>Complete</option>
+                        </select>
+                        <div class="mb-2 max-h-24 overflow-y-auto border-b pb-2">${o.items.map(i=>`<p>• ${i.name} (${i.size})</p>`).join('')}</div>
+                        <button onclick="deleteOrder('${o.id}')" class="w-full bg-red-500 text-white py-1 rounded text-[8px]">DELETE ORDER</button>
                     </div>
                 </div>`).join('');
         }
 
-        function updateNote(id, note) { orders.find(o => o.orderID === id).adminNote = note; localStorage.setItem(ORDER_KEY, JSON.stringify(orders)); }
-        function updateRefund(id, val) { orders.find(o => o.orderID === id).isRefunded = val; localStorage.setItem(ORDER_KEY, JSON.stringify(orders)); }
-        function updatePaid(id, val) { orders.find(o => o.orderID === id).isPaid = val; localStorage.setItem(ORDER_KEY, JSON.stringify(orders)); renderAdmin(); }
-        function updateStatus(id, stat) { orders.find(o => o.orderID === id).status = stat; localStorage.setItem(ORDER_KEY, JSON.stringify(orders)); renderAdmin(); }
-        function deleteOrder(id) { if(confirm("Delete Order?")) { orders = orders.filter(x => x.orderID !== id); localStorage.setItem(ORDER_KEY, JSON.stringify(orders)); renderAdmin(); } }
+        async function updateStatus(id, stat) { await _supabase.from('orders').update({ status: stat }).eq('id', id); loadData(); }
+        async function updatePaid(id, val) { await _supabase.from('orders').update({ isPaid: val }).eq('id', id); loadData(); }
+        async function deleteOrder(id) { if(confirm("Delete?")) { await _supabase.from('orders').delete().eq('id', id); loadData(); } }
 
-        document.getElementById('fileIn').onchange = async (e) => {
-            const fd = new FormData(); fd.append('image', e.target.files[0]);
-            const res = await fetch('https://api.imgbb.com/1/upload?key=73d04afd891df63c360b510165eb42f4', { method: 'POST', body: fd });
-            const d = await res.json(); document.getElementById('imgUrl').value = d.data.url; alert("Image Uploaded");
-        };
-
-        document.getElementById('pForm').onsubmit = (e) => {
+        document.getElementById('pForm').onsubmit = async (e) => {
             e.preventDefault();
             const id = document.getElementById('edit-id').value || "P-" + Date.now();
             const p = {
@@ -333,9 +301,8 @@
                 isStockOut: document.getElementById('isStockOut').checked,
                 prices: { '1ml': document.getElementById('p1').value, '3ml': document.getElementById('p3').value, '5ml': document.getElementById('p5').value, '10ml': document.getElementById('p10').value, '15ml': document.getElementById('p15').value, '30ml': document.getElementById('p30').value, '50ml': document.getElementById('p50').value, '100ml': document.getElementById('p100').value, '200ml': document.getElementById('p200').value }
             };
-            const idx = inventory.findIndex(x => x.id === id);
-            if(idx > -1) inventory[idx] = p; else inventory.push(p);
-            localStorage.setItem(DB_KEY, JSON.stringify(inventory)); location.reload();
+            const { error } = await _supabase.from('perfumes').upsert([p]);
+            if (!error) { alert("Saved!"); document.getElementById('pForm').reset(); document.getElementById('edit-id').value = ""; loadData(); }
         };
 
         function editProduct(id) {
@@ -345,11 +312,17 @@
             document.getElementById('imgUrl').value = p.img; document.getElementById('disc').value = p.discount;
             document.getElementById('isStockOut').checked = p.isStockOut || false;
             for(let m of [1,3,5,10,15,30,50,100,200]) document.getElementById('p'+m).value = p.prices[m+'ml'] || '';
-            window.scrollTo(0,0);
         }
-        function deleteProduct(id) { if(confirm("Delete Perfume?")) { inventory = inventory.filter(x => x.id !== id); localStorage.setItem(DB_KEY, JSON.stringify(inventory)); renderAdmin(); } }
+        async function deleteProduct(id) { if(confirm("Delete?")) { await _supabase.from('perfumes').delete().eq('id', id); loadData(); } }
 
-        window.onload = () => { filteredItems = inventory; renderShop(); };
+        document.getElementById('fileIn').onchange = async (e) => {
+            const fd = new FormData(); fd.append('image', e.target.files[0]);
+            const res = await fetch('https://api.imgbb.com/1/upload?key=73d04afd891df63c360b510165eb42f4', { method: 'POST', body: fd });
+            const d = await res.json(); document.getElementById('imgUrl').value = d.data.url; alert("Image Ready");
+        };
+
+        const dSel2 = document.getElementById('cust-district'); districts.sort().forEach(d => dSel2.add(new Option(d, d)));
+        window.onload = loadData;
     </script>
 </body>
 </html>
