@@ -39,9 +39,7 @@
         <div class="flex gap-2">
             <button onclick="showSection('track')" class="text-[9px] bg-white px-2 py-2 uppercase font-bold border rounded">Track Order</button>
             <button onclick="openLogin()" class="text-[9px] bg-stone-100 px-2 py-2 uppercase font-bold border rounded">Admin</button>
-            <button onclick="toggleCart()" class="bg-black text-white px-3 py-2 text-[9px] uppercase font-bold shop-section rounded">
-                Bag (<span id="cart-count">0</span>)
-            </button>
+            <button onclick="toggleCart()" class="bg-black text-white px-3 py-2 text-[9px] uppercase font-bold shop-section rounded">Bag (<span id="cart-count">0</span>)</button>
         </div>
     </header>
 
@@ -72,24 +70,14 @@
         </div>
         <div id="cart-items" class="space-y-4 mb-6"></div>
         <div id="checkout-form" class="space-y-3 border-t pt-4">
-            <h3 class="text-[10px] font-black uppercase tracking-tighter">Shipping Information</h3>
             <input type="text" id="cust-name" placeholder="Full Name *" class="w-full border p-2 text-xs outline-none">
-            <input type="tel" id="cust-phone" maxlength="11" placeholder="Phone Number (11 Digits) *" class="w-full border p-2 text-xs outline-none">
-            <select id="cust-division" class="w-full border p-2 text-xs bg-white">
-                <option value="">Select Division *</option><option>Barishal</option><option>Chattogram</option><option>Dhaka</option>
-                <option>Khulna</option><option>Mymensingh</option><option>Rajshahi</option><option>Rangpur</option><option>Sylhet</option>
-            </select>
+            <input type="tel" id="cust-phone" maxlength="11" placeholder="Phone Number *" class="w-full border p-2 text-xs outline-none">
+            <select id="cust-division" class="w-full border p-2 text-xs bg-white"><option value="">Select Division *</option><option>Barishal</option><option>Chattogram</option><option>Dhaka</option><option>Khulna</option><option>Mymensingh</option><option>Rajshahi</option><option>Rangpur</option><option>Sylhet</option></select>
             <select id="cust-district" class="w-full border p-2 text-xs bg-white"><option value="">Select District *</option></select>
-            <div class="grid grid-cols-2 gap-2">
-                <input type="text" id="cust-house" placeholder="House No. *" class="border p-2 text-xs">
-                <input type="text" id="cust-road" placeholder="Road No. *" class="border p-2 text-xs">
-            </div>
-            <textarea id="cust-details" placeholder="Detailed Address * (Area, Landmark)" class="w-full border p-2 text-xs h-16 outline-none"></textarea>
+            <div class="grid grid-cols-2 gap-2"><input type="text" id="cust-house" placeholder="House No. *" class="border p-2 text-xs"><input type="text" id="cust-road" placeholder="Road No. *" class="border p-2 text-xs"></div>
+            <textarea id="cust-details" placeholder="Detailed Address *" class="w-full border p-2 text-xs h-16 outline-none"></textarea>
             <h3 class="text-[10px] font-black uppercase mt-4 text-red-600">Payment (01725805104)</h3>
-            <div class="grid grid-cols-2 gap-2">
-                <select id="pay-method" class="border p-2 text-xs"><option>bKash</option><option>Nagad</option></select>
-                <input type="text" id="pay-trx" placeholder="Transaction ID *" class="border p-2 text-xs bg-stone-50 font-bold outline-none">
-            </div>
+            <div class="grid grid-cols-2 gap-2"><select id="pay-method" class="border p-2 text-xs"><option>bKash</option><option>Nagad</option></select><input type="text" id="pay-trx" placeholder="Transaction ID *" class="border p-2 text-xs bg-stone-50 font-bold outline-none"></div>
             <div class="flex justify-between font-bold text-base mt-4 pt-2 border-t"><span>Total:</span><span>৳<span id="grand-total">0</span></span></div>
             <button onclick="placeOrder()" class="w-full bg-black text-white py-4 text-[10px] uppercase font-bold mt-4 tracking-widest">Confirm Order</button>
         </div>
@@ -124,8 +112,7 @@
                     </div>
                     <input type="number" id="disc" placeholder="Discount %" class="w-full border p-2 bg-yellow-50">
                     <input type="file" id="fileIn" class="w-full border p-1">
-                    <input type="hidden" id="imgUrl">
-                    <button type="submit" class="w-full bg-black text-white py-3 font-bold uppercase tracking-widest mt-2">Save Perfume</button>
+                    <input type="hidden" id="imgUrl"><button type="submit" class="w-full bg-black text-white py-3 font-bold uppercase tracking-widest mt-2">Save Perfume</button>
                 </form>
                 <div class="mt-6 border-t pt-4">
                     <input type="text" id="adminSearch" oninput="renderAdmin()" placeholder="Search Inventory..." class="w-full border p-2 text-[10px] mb-2 outline-none">
@@ -133,10 +120,7 @@
                 </div>
             </div>
             <div class="lg:col-span-2">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-black uppercase text-xs">Manage Orders</h3>
-                    <input type="text" id="orderSearch" oninput="renderAdmin()" placeholder="Search Name, Phone, or ID..." class="border p-2 text-[10px] w-64 outline-none">
-                </div>
+                <div class="flex justify-between items-center mb-4"><h3 class="font-black uppercase text-xs">Manage Orders</h3><input type="text" id="orderSearch" oninput="renderAdmin()" placeholder="Search Name/Phone..." class="border p-2 text-[10px] w-64 outline-none"></div>
                 <div id="admin-order-list" class="space-y-4"></div>
             </div>
         </div>
@@ -151,64 +135,33 @@
         let inventory = []; let orders = []; let filteredItems = []; let cart = [];
 
         async function loadData() {
-            try {
-                const { data: pData } = await _supabase.from('perfumes').select('*');
-                const { data: oData } = await _supabase.from('orders').select('*').order('created_at', { ascending: false });
-                if (pData) inventory = pData;
-                if (oData) orders = oData;
-                filteredItems = inventory;
-                renderShop();
-                renderAdmin();
-            } catch (e) { console.error("Load Error:", e); }
+            const { data: pData } = await _supabase.from('perfumes').select('*');
+            const { data: oData } = await _supabase.from('orders').select('*').order('created_at', { ascending: false });
+            inventory = pData || []; orders = oData || []; filteredItems = inventory;
+            renderShop(); renderAdmin();
         }
 
-        function attemptLogin() {
-            if(document.getElementById('adm-user').value === 'admin' && document.getElementById('adm-pass').value === 'ad123min') { closeLogin(); showSection('admin'); } else { alert("Unauthorized"); }
-        }
+        function attemptLogin() { if(document.getElementById('adm-user').value === 'admin' && document.getElementById('adm-pass').value === 'ad123min') { closeLogin(); showSection('admin'); } else { alert("Unauthorized"); } }
         function openLogin() { document.getElementById('login-modal').classList.add('show'); }
         function closeLogin() { document.getElementById('login-modal').classList.remove('show'); }
-        function showSection(sec) {
-            document.body.classList.remove('admin-mode', 'track-mode');
-            if(sec === 'admin') { document.body.classList.add('admin-mode'); renderAdmin(); }
-            if(sec === 'track') { document.body.classList.add('track-mode'); renderCustomerOrders(); }
-            window.scrollTo(0,0);
-        }
+        function showSection(sec) { document.body.classList.remove('admin-mode', 'track-mode'); if(sec === 'admin') document.body.classList.add('admin-mode'); if(sec === 'track') { document.body.classList.add('track-mode'); renderCustomerOrders(); } window.scrollTo(0,0); }
         function resetShop() { showSection('shop'); filteredItems = inventory; renderShop(); }
         function toggleCart() { document.getElementById('custom-cart').classList.toggle('open'); }
 
         function renderShop(items = filteredItems) {
-            const grid = document.getElementById('shop-grid');
-            grid.innerHTML = (items || []).map(p => {
+            document.getElementById('shop-grid').innerHTML = items.map(p => {
                 const sz = Object.entries(p.prices || {}).filter(([k,v]) => v && v > 0);
                 return `<div class="perfume-card bg-white border flex flex-col p-2 shadow-sm ${p.isStockOut ? 'opacity-60' : ''}">
                     <img src="${p.img || ''}" class="w-full mb-2 bg-stone-100">
-                    <p class="text-[8px] uppercase text-stone-400 font-black tracking-widest">${p.brand || 'No Brand'}</p>
-                    <h2 class="font-bold text-[11px] truncate mb-2">${p.name || 'Untitled'}</h2>
+                    <p class="text-[8px] uppercase text-stone-400 font-black tracking-widest">${p.brand}</p>
+                    <h2 class="font-bold text-[11px] truncate mb-2">${p.name}</h2>
                     <select id="size-${p.id}" class="text-[10px] border mb-2 bg-white p-1" ${p.isStockOut ? 'disabled' : ''}>
                         ${sz.map(([ml, pr]) => `<option value="${p.discount>0?Math.round(pr-(pr*p.discount/100)):pr}">${ml} - ৳${p.discount>0?Math.round(pr-(pr*p.discount/100)):pr}</option>`).join('')}
                     </select>
-                    ${p.isStockOut ? `<button class="w-full bg-stone-300 text-stone-600 py-2 text-[9px] uppercase font-black cursor-not-allowed">Stock Out</button>` 
-                    : `<button onclick="addToCart('${p.id}')" class="w-full bg-black text-white py-2 text-[9px] uppercase font-black">Add to Bag</button>`}
+                    <button onclick="addToCart('${p.id}')" class="w-full ${p.isStockOut?'bg-stone-300':'bg-black text-white'} py-2 text-[9px] uppercase font-black" ${p.isStockOut?'disabled':''}>${p.isStockOut?'Stock Out':'Add to Bag'}</button>
                 </div>`;
             }).join('');
             renderBrandMenu();
-        }
-
-        function handleSearch() {
-            const q = document.getElementById('globalSearch').value.toLowerCase();
-            renderShop(inventory.filter(p => (p.name || '').toLowerCase().includes(q) || (p.brand || '').toLowerCase().includes(q)));
-        }
-
-        function setSeason(s) {
-            document.querySelectorAll('.filter-link').forEach(l => l.classList.remove('active-filter'));
-            document.getElementById('f-'+s).classList.add('active-filter');
-            filteredItems = (s === 'all') ? inventory : inventory.filter(p => p.season === s);
-            renderShop();
-        }
-
-        function renderBrandMenu() {
-            const brands = [...new Set(inventory.map(p => p.brand))].filter(b => b).sort();
-            document.getElementById('brand-menu').innerHTML = brands.map(b => `<li><button onclick="renderShop(inventory.filter(p => p.brand === '${b}'))" class="hover:text-black">${b}</button></li>`).join('');
         }
 
         function addToCart(id) {
@@ -216,206 +169,108 @@
             const sel = document.getElementById(`size-${id}`);
             const price = parseFloat(sel.value);
             const sizeLabel = sel.options[sel.selectedIndex].text;
-            const existing = cart.find(i => i.id === id && i.size === sizeLabel);
-            if(existing) { existing.qty++; } else { cart.push({ id, name: p.name, size: sizeLabel, price: price, img: p.img, qty: 1 }); }
-            updateCartUI(); document.getElementById('custom-cart').classList.add('open');
+            cart.push({ id, name: p.name, size: sizeLabel, price, img: p.img, qty: 1 });
+            updateCartUI(); toggleCart();
         }
 
         function updateCartUI() {
-            document.getElementById('cart-count').innerText = cart.reduce((a,b) => a + b.qty, 0); 
-            let sub = 0;
-            document.getElementById('cart-items').innerHTML = cart.map((item, idx) => {
-                sub += (item.price * item.qty);
-                return `<div class="flex justify-between items-center text-[10px] border-b pb-2">
-                    <div class="flex gap-3"><img src="${item.img}" class="w-10 h-10 object-cover rounded"><div><p class="font-black">${item.name}</p><p class="text-stone-400 uppercase">${item.size}</p></div></div>
-                    <div class="flex items-center gap-2">
-                        <button onclick="changeQty(${idx}, -1)" class="w-5 h-5 border flex items-center justify-center font-bold">-</button>
-                        <span>${item.qty}</span>
-                        <button onclick="changeQty(${idx}, 1)" class="w-5 h-5 border flex items-center justify-center font-bold">+</button>
-                    </div>
-                </div>`;
-            }).join('');
-            document.getElementById('grand-total').innerText = cart.length > 0 ? sub + 100 : 0;
-        }
-
-        function changeQty(idx, delta) {
-            cart[idx].qty += delta;
-            if(cart[idx].qty <= 0) cart.splice(idx, 1);
-            updateCartUI();
+            document.getElementById('cart-count').innerText = cart.length;
+            let sub = cart.reduce((a, b) => a + (b.price * b.qty), 0);
+            document.getElementById('cart-items').innerHTML = cart.map((item, i) => `
+                <div class="flex justify-between items-center text-[10px] border-b pb-2">
+                    <div class="flex gap-2"><img src="${item.img}" class="w-8 h-8 object-cover"><div><p class="font-bold">${item.name}</p><p class="text-stone-400">${item.size}</p></div></div>
+                    <button onclick="cart.splice(${i},1);updateCartUI()" class="text-red-500">✕</button>
+                </div>`).join('');
+            document.getElementById('grand-total').innerText = cart.length ? sub + 100 : 0;
         }
 
         async function placeOrder() {
-            const phone = document.getElementById('cust-phone').value;
-            const name = document.getElementById('cust-name').value.trim();
-            const div = document.getElementById('cust-division').value;
-            const dist = document.getElementById('cust-district').value;
-            const house = document.getElementById('cust-house').value.trim();
-            const road = document.getElementById('cust-road').value.trim();
-            const details = document.getElementById('cust-details').value.trim();
-            const trx = document.getElementById('pay-trx').value.trim();
-
-            if(cart.length === 0) return alert("Your bag is empty!");
-            if(!name || !div || !dist || !house || !road || !details || !trx) return alert("Fill all fields.");
-            if(!/^\d{11}$/.test(phone)) return alert("11-digit phone required.");
-
             const now = new Date();
             const o = {
                 orderID: `BRZ-${now.getTime().toString().slice(-6)}`,
-                customer: name, phone,
-                address: `H:${house}, R:${road}, ${details}, ${dist}, ${div}`,
-                items: [...cart], 
-                total: parseFloat(document.getElementById('grand-total').innerText),
-                method: document.getElementById('pay-method').value, 
-                trx: trx,
-                status: 'Order Received', 
-                adminNote: '', isRefunded: false, isPaid: false,
-                orderDate: now.toLocaleDateString(),
-                orderTime: now.toLocaleTimeString()
+                customer: document.getElementById('cust-name').value,
+                phone: document.getElementById('cust-phone').value,
+                address: `${document.getElementById('cust-house').value}, ${document.getElementById('cust-road').value}, ${document.getElementById('cust-details').value}, ${document.getElementById('cust-district').value}`,
+                items: [...cart], total: parseFloat(document.getElementById('grand-total').innerText),
+                method: document.getElementById('pay-method').value, trx: document.getElementById('pay-trx').value,
+                status: 'Order Received', orderDate: now.toLocaleDateString(), orderTime: now.toLocaleTimeString(),
+                isPaid: false, isRefunded: false, adminNote: ''
             };
             const { error } = await _supabase.from('orders').insert([o]);
-            if(!error) { alert("Placed!"); cart=[]; updateCartUI(); toggleCart(); loadData(); showSection('track'); }
-            else { alert("Error: " + error.message); }
+            if(!error) { alert("Ordered!"); cart=[]; updateCartUI(); toggleCart(); loadData(); showSection('track'); }
         }
 
         function renderCustomerOrders() {
             document.getElementById('customer-order-list').innerHTML = orders.map(o => `
-                <div class="bg-white p-5 border text-xs shadow-sm">
-                    <div class="flex justify-between items-start mb-2">
-                        <div>
-                            <p class="font-black text-stone-400 uppercase tracking-tighter">${o.orderID}</p>
-                            <p class="text-[9px] text-stone-400">${o.orderDate || ''} | ${o.orderTime || ''}</p>
-                        </div>
-                        <div class="flex gap-2">
-                            <span class="${o.isPaid ? 'bg-green-600' : 'bg-red-500'} text-white px-2 py-1 text-[8px] font-black uppercase rounded-full">${o.isPaid ? 'Paid' : 'Unpaid'}</span>
-                            <span class="bg-black text-white px-3 py-1 text-[9px] font-black uppercase rounded-full">${o.status}</span>
-                        </div>
-                    </div>
-                    <div class="space-y-1 mb-2">${(o.items || []).map(i => `<p>• ${i.qty}x ${i.name} (${i.size})</p>`).join('')}</div>
-                    ${o.adminNote ? `<div class="bg-stone-100 p-2 border-l-4 border-black mb-2 italic text-[10px]">Note: ${o.adminNote}</div>` : ''}
-                    ${o.isRefunded ? `<p class="text-green-600 font-bold mb-2">✓ Refunded</p>` : ''}
-                    <p class="font-black border-t pt-2 text-sm">Total: ৳${o.total}</p>
+                <div class="bg-white p-4 border text-[11px] shadow-sm">
+                    <div class="flex justify-between mb-2"><b>${o.orderID}</b> <span class="bg-black text-white px-2 py-0.5 rounded-full text-[9px] uppercase">${o.status}</span></div>
+                    <p class="text-stone-400 mb-2">${o.orderDate} | ${o.orderTime}</p>
+                    ${o.items.map(i => `<p>• ${i.name} (${i.size})</p>`).join('')}
+                    <div class="mt-2 border-t pt-2 font-bold flex justify-between"><span>Paid: ${o.isPaid?'Yes':'No'}</span><span>Total: ৳${o.total}</span></div>
                 </div>`).join('');
         }
 
         function renderAdmin() {
-            const pq = document.getElementById('adminSearch')?.value.toLowerCase() || "";
-            const oq = document.getElementById('orderSearch')?.value.toLowerCase() || "";
-
-            document.getElementById('admin-product-list').innerHTML = inventory.filter(p => (p.name || '').toLowerCase().includes(pq)).map(p => `
-                <div class="flex justify-between items-center text-[10px] bg-stone-50 p-2 border mb-1">
-                    <span><b>${p.brand}</b> ${p.name}</span>
-                    <div class="flex gap-2"><button onclick="editProduct('${p.id}')" class="underline">Edit</button><button onclick="deleteProduct('${p.id}')" class="text-red-500">Del</button></div>
-                </div>`).join('');
-
-            document.getElementById('admin-order-list').innerHTML = orders.filter(o => 
-                (o.customer || '').toLowerCase().includes(oq) || 
-                (o.phone || '').includes(oq) || 
-                (o.orderID || '').toLowerCase().includes(oq)
-            ).map(o => `
-                <div class="bg-white p-4 border text-[10px] grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div class="border-r pr-4">
-                        <div class="flex justify-between border-b pb-1 mb-1">
-                            <p class="font-black text-xs text-blue-600">${o.orderID}</p>
-                            <p class="text-stone-400">${o.orderDate || ''} ${o.orderTime || ''}</p>
-                        </div>
-                        <p><b>Cust:</b> ${o.customer} (${o.phone})</p>
-                        <p><b>Addr:</b> ${o.address}</p>
-                        <p><b>Pay:</b> ${o.method} - ${o.trx}</p>
-                        <div class="mt-2">
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" ${o.isPaid?'checked':''} onchange="updateRow('${o.id}', {isPaid: this.checked})"> 
-                                <span class="${o.isPaid?'text-green-600':'text-red-500'} font-black uppercase">Mark Paid</span>
-                            </label>
-                        </div>
-                    </div>
+            document.getElementById('admin-order-list').innerHTML = orders.map(o => `
+                <div class="bg-white p-4 border text-[10px] grid grid-cols-2 gap-4">
                     <div>
-                        <select onchange="updateRow('${o.id}', {status: this.value})" class="border p-1 w-full mb-2 bg-stone-50 text-[9px] uppercase font-bold outline-none">
+                        <p class="font-black text-blue-600">${o.orderID}</p>
+                        <p><b>Cust:</b> ${o.customer} (${o.phone})</p>
+                        <p><b>Trx:</b> ${o.trx}</p>
+                        <label class="flex items-center gap-2 mt-2"><input type="checkbox" ${o.isPaid?'checked':''} onchange="updateAny('${o.orderID}', {isPaid: this.checked})"> <span class="font-bold">PAID</span></label>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <select onchange="updateAny('${o.orderID}', {status: this.value})" class="border p-1 bg-stone-50">
                             <option ${o.status==='Order Received'?'selected':''}>Order Received</option>
                             <option ${o.status==='Dispatched'?'selected':''}>Dispatched</option>
                             <option ${o.status==='Complete'?'selected':''}>Complete</option>
                             <option ${o.status==='Cancelled'?'selected':''}>Cancelled</option>
-                            <option ${o.status==='Refunded'?'selected':''}>Refunded</option>
                         </select>
-                        <textarea onblur="updateRow('${o.id}', {adminNote: this.value})" class="w-full border p-1 h-10 text-[9px]" placeholder="Add Private Note...">${o.adminNote || ''}</textarea>
-                        <label class="flex items-center gap-2 text-red-600 font-bold mt-1 cursor-pointer">
-                            <input type="checkbox" ${o.isRefunded?'checked':''} onchange="updateRow('${o.id}', {isRefunded: this.checked})"> 
-                            <span>REFUNDED</span>
-                        </label>
-                        <div class="flex justify-between items-center mt-2 pt-2 border-t">
-                            <button onclick="deleteOrder('${o.id}')" class="text-red-500 font-black uppercase hover:underline">Delete Order</button>
-                            <p class="font-black text-base tracking-tighter">৳${o.total}</p>
-                        </div>
+                        <label class="flex items-center gap-2 text-red-600 font-bold"><input type="checkbox" ${o.isRefunded?'checked':''} onchange="updateAny('${o.orderID}', {isRefunded: this.checked})"> REFUNDED</label>
+                        <button onclick="deleteAny('${o.orderID}')" class="text-red-500 underline text-left mt-2">DELETE ORDER</button>
                     </div>
                 </div>`).join('');
+
+            document.getElementById('admin-product-list').innerHTML = inventory.map(p => `
+                <div class="flex justify-between bg-stone-50 p-1 border mb-1 text-[9px]"><span>${p.name}</span><button onclick="deleteProduct('${p.id}')" class="text-red-500">Del</button></div>`).join('');
         }
 
-        async function updateRow(rowId, updateObj) { 
-            console.log("Updating Row ID:", rowId, "With Data:", updateObj);
-            try {
-                const { error } = await _supabase.from('orders').update(updateObj).eq('id', rowId); 
-                if(error) {
-                    alert("Database Update Failed! Ensure columns exist and RLS is off.");
-                    console.error("Supabase Error:", error);
-                } else {
-                    console.log("Update Successful");
-                    loadData(); 
-                }
-            } catch (err) {
-                console.error("Critical JS Error during update:", err);
+        // DYNAMIC IDENTIFIER LOGIC
+        async function updateAny(oid, obj) {
+            // Find row by orderID instead of the missing 'id' column
+            const { error } = await _supabase.from('orders').update(obj).eq('orderID', oid);
+            if(error) alert(error.message); else loadData();
+        }
+
+        async function deleteAny(oid) {
+            if(confirm("Delete Order?")) {
+                const { error } = await _supabase.from('orders').delete().eq('orderID', oid);
+                if(error) alert(error.message); else loadData();
             }
         }
 
-        async function deleteOrder(rowId) { 
-            if(confirm("Permanently delete this order?")) { 
-                try {
-                    const { error } = await _supabase.from('orders').delete().eq('id', rowId); 
-                    if(error) {
-                        alert("Delete Failed! Check RLS settings.");
-                        console.error("Supabase Error:", error);
-                    } else {
-                        loadData(); 
-                    }
-                } catch (err) {
-                    console.error("Critical JS Error during delete:", err);
-                }
-            } 
+        async function deleteProduct(id) {
+            if(confirm("Delete Product?")) {
+                const { error } = await _supabase.from('perfumes').delete().eq('id', id);
+                loadData();
+            }
         }
 
         document.getElementById('pForm').onsubmit = async (e) => {
             e.preventDefault();
-            const id = document.getElementById('edit-id').value || "P-" + Date.now();
             const p = {
-                id, name: document.getElementById('name').value, brand: document.getElementById('brand').value,
-                season: document.getElementById('season').value, profile: document.getElementById('profile').value,
-                img: document.getElementById('imgUrl').value || 'https://via.placeholder.com/200',
-                discount: parseFloat(document.getElementById('disc').value) || 0,
-                isStockOut: document.getElementById('isStockOut').checked,
-                prices: { '1ml': document.getElementById('p1').value, '3ml': document.getElementById('p3').value, '5ml': document.getElementById('p5').value, '10ml': document.getElementById('p10').value, '15ml': document.getElementById('p15').value, '30ml': document.getElementById('p30').value, '50ml': document.getElementById('p50').value, '100ml': document.getElementById('p100').value, '200ml': document.getElementById('p200').value }
+                id: "P-"+Date.now(), name: document.getElementById('name').value, brand: document.getElementById('brand').value,
+                season: document.getElementById('season').value, img: document.getElementById('imgUrl').value || 'https://via.placeholder.com/200',
+                prices: { '1ml': document.getElementById('p1').value, '3ml': document.getElementById('p3').value, '10ml': document.getElementById('p10').value },
+                isStockOut: document.getElementById('isStockOut').checked
             };
-            await _supabase.from('perfumes').upsert([p]);
-            alert("Saved!"); document.getElementById('pForm').reset(); document.getElementById('edit-id').value = ""; loadData();
+            await _supabase.from('perfumes').upsert([p]); loadData();
         };
-
-        function editProduct(id) {
-            const p = inventory.find(x => x.id === id); document.getElementById('edit-id').value = p.id;
-            document.getElementById('name').value = p.name; document.getElementById('brand').value = p.brand;
-            document.getElementById('season').value = p.season; document.getElementById('profile').value = p.profile;
-            document.getElementById('imgUrl').value = p.img; document.getElementById('disc').value = p.discount;
-            document.getElementById('isStockOut').checked = p.isStockOut || false;
-            for(let m of [1,3,5,10,15,30,50,100,200]) document.getElementById('p'+m).value = p.prices[m+'ml'] || '';
-        }
-
-        async function deleteProduct(id) { 
-            if(confirm("Delete this perfume?")) { 
-                await _supabase.from('perfumes').delete().eq('id', id); 
-                loadData(); 
-            } 
-        }
 
         document.getElementById('fileIn').onchange = async (e) => {
             const fd = new FormData(); fd.append('image', e.target.files[0]);
             const res = await fetch('https://api.imgbb.com/1/upload?key=73d04afd891df63c360b510165eb42f4', { method: 'POST', body: fd });
-            const d = await res.json(); document.getElementById('imgUrl').value = d.data.url; alert("Image Ready");
+            const d = await res.json(); document.getElementById('imgUrl').value = d.data.url; alert("Ready");
         };
 
         const dSel2 = document.getElementById('cust-district'); districts.sort().forEach(d => dSel2.add(new Option(d, d)));
