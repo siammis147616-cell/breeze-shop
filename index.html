@@ -151,13 +151,15 @@
         let inventory = []; let orders = []; let filteredItems = []; let cart = [];
 
         async function loadData() {
-            const { data: pData } = await _supabase.from('perfumes').select('*');
-            const { data: oData } = await _supabase.from('orders').select('*').order('created_at', { ascending: false });
-            if (pData) inventory = pData;
-            if (oData) orders = oData;
-            filteredItems = inventory;
-            renderShop();
-            renderAdmin();
+            try {
+                const { data: pData } = await _supabase.from('perfumes').select('*');
+                const { data: oData } = await _supabase.from('orders').select('*').order('created_at', { ascending: false });
+                if (pData) inventory = pData;
+                if (oData) orders = oData;
+                filteredItems = inventory;
+                renderShop();
+                renderAdmin();
+            } catch (e) { console.error("Load Error:", e); }
         }
 
         function attemptLogin() {
@@ -176,7 +178,7 @@
 
         function renderShop(items = filteredItems) {
             const grid = document.getElementById('shop-grid');
-            grid.innerHTML = items.map(p => {
+            grid.innerHTML = (items || []).map(p => {
                 const sz = Object.entries(p.prices || {}).filter(([k,v]) => v && v > 0);
                 return `<div class="perfume-card bg-white border flex flex-col p-2 shadow-sm ${p.isStockOut ? 'opacity-60' : ''}">
                     <img src="${p.img || ''}" class="w-full mb-2 bg-stone-100">
@@ -272,6 +274,7 @@
             };
             const { error } = await _supabase.from('orders').insert([o]);
             if(!error) { alert("Placed!"); cart=[]; updateCartUI(); toggleCart(); loadData(); showSection('track'); }
+            else { alert("Error: " + error.message); }
         }
 
         function renderCustomerOrders() {
@@ -280,7 +283,7 @@
                     <div class="flex justify-between items-start mb-2">
                         <div>
                             <p class="font-black text-stone-400 uppercase tracking-tighter">${o.orderID}</p>
-                            <p class="text-[9px] text-stone-400">${o.orderDate || 'No Date'} | ${o.orderTime || ''}</p>
+                            <p class="text-[9px] text-stone-400">${o.orderDate || ''} | ${o.orderTime || ''}</p>
                         </div>
                         <div class="flex gap-2">
                             <span class="${o.isPaid ? 'bg-green-600' : 'bg-red-500'} text-white px-2 py-1 text-[8px] font-black uppercase rounded-full">${o.isPaid ? 'Paid' : 'Unpaid'}</span>
@@ -319,29 +322,46 @@
                         <p><b>Addr:</b> ${o.address}</p>
                         <p><b>Pay:</b> ${o.method} - ${o.trx}</p>
                         <div class="mt-2">
-                            <label class="flex items-center gap-2"><input type="checkbox" ${o.isPaid?'checked':''} onchange="updateRow('${o.id}', {isPaid: this.checked})"> <span class="${o.isPaid?'text-green-600':'text-red-500'} font-black">Mark Paid</span></label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" ${o.isPaid?'checked':''} onchange="updateRow('${o.id}', {isPaid: this.checked})"> 
+                                <span class="${o.isPaid?'text-green-600':'text-red-500'} font-black uppercase">Mark Paid</span>
+                            </label>
                         </div>
                     </div>
                     <div>
-                        <select onchange="updateRow('${o.id}', {status: this.value})" class="border p-1 w-full mb-2 bg-stone-50 text-[9px] uppercase font-bold">
+                        <select onchange="updateRow('${o.id}', {status: this.value})" class="border p-1 w-full mb-2 bg-stone-50 text-[9px] uppercase font-bold outline-none">
                             <option ${o.status==='Order Received'?'selected':''}>Order Received</option>
                             <option ${o.status==='Dispatched'?'selected':''}>Dispatched</option>
                             <option ${o.status==='Complete'?'selected':''}>Complete</option>
                             <option ${o.status==='Cancelled'?'selected':''}>Cancelled</option>
                             <option ${o.status==='Refunded'?'selected':''}>Refunded</option>
                         </select>
-                        <textarea onchange="updateRow('${o.id}', {adminNote: this.value})" class="w-full border p-1 h-10 text-[9px]" placeholder="Note...">${o.adminNote || ''}</textarea>
-                        <label class="flex items-center gap-2 text-red-600 font-bold mt-1"><input type="checkbox" ${o.isRefunded?'checked':''} onchange="updateRow('${o.id}', {isRefunded: this.checked})"> Refunded</label>
-                        <div class="flex justify-between items-center mt-2">
-                            <button onclick="deleteOrder('${o.id}')" class="text-red-500 underline">Delete</button>
-                            <p class="font-black text-sm">৳${o.total}</p>
+                        <textarea onchange="updateRow('${o.id}', {adminNote: this.value})" class="w-full border p-1 h-10 text-[9px]" placeholder="Add Private Note...">${o.adminNote || ''}</textarea>
+                        <label class="flex items-center gap-2 text-red-600 font-bold mt-1 cursor-pointer">
+                            <input type="checkbox" ${o.isRefunded?'checked':''} onchange="updateRow('${o.id}', {isRefunded: this.checked})"> 
+                            <span>REFUNDED</span>
+                        </label>
+                        <div class="flex justify-between items-center mt-2 pt-2 border-t">
+                            <button onclick="deleteOrder('${o.id}')" class="text-red-500 font-black uppercase hover:underline">Delete Order</button>
+                            <p class="font-black text-base tracking-tighter">৳${o.total}</p>
                         </div>
                     </div>
                 </div>`).join('');
         }
 
-        async function updateRow(id, obj) { await _supabase.from('orders').update(obj).eq('id', id); loadData(); }
-        async function deleteOrder(id) { if(confirm("Delete?")) { await _supabase.from('orders').delete().eq('id', id); loadData(); } }
+        async function updateRow(id, obj) { 
+            const { error } = await _supabase.from('orders').update(obj).eq('id', id); 
+            if(error) alert("Update Failed: " + error.message);
+            loadData(); 
+        }
+
+        async function deleteOrder(id) { 
+            if(confirm("Permanently delete this order?")) { 
+                const { error } = await _supabase.from('orders').delete().eq('id', id); 
+                if(error) alert("Delete Failed: " + error.message);
+                loadData(); 
+            } 
+        }
 
         document.getElementById('pForm').onsubmit = async (e) => {
             e.preventDefault();
@@ -366,7 +386,13 @@
             document.getElementById('isStockOut').checked = p.isStockOut || false;
             for(let m of [1,3,5,10,15,30,50,100,200]) document.getElementById('p'+m).value = p.prices[m+'ml'] || '';
         }
-        async function deleteProduct(id) { if(confirm("Delete?")) { await _supabase.from('perfumes').delete().eq('id', id); loadData(); } }
+
+        async function deleteProduct(id) { 
+            if(confirm("Delete this perfume?")) { 
+                await _supabase.from('perfumes').delete().eq('id', id); 
+                loadData(); 
+            } 
+        }
 
         document.getElementById('fileIn').onchange = async (e) => {
             const fd = new FormData(); fd.append('image', e.target.files[0]);
