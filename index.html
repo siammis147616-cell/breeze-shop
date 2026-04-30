@@ -3,44 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Breeze Admin | Fixed</title>
+    <title>Breeze | Luxury Decants & Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         .admin-section, .order-tracking, .login-overlay { display: none; }
         body.admin-mode .admin-section { display: block; }
         body.admin-mode .shop-section, body.admin-mode .order-tracking { display: none; }
-        .login-overlay.show { display: flex; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; }
+        body.track-mode .order-tracking { display: block; }
+        body.track-mode .shop-section, body.track-mode .admin-section { display: none; }
+        .login-overlay.show { display: flex; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body class="bg-stone-50 text-stone-900">
 
-    <!-- ADMIN LOGIN -->
+    <!-- LOGIN MODAL -->
     <div id="login-modal" class="login-overlay">
-        <div class="bg-white p-8 rounded shadow-2xl w-80 text-center">
-            <h2 class="font-serif italic text-2xl mb-4">Breeze Admin</h2>
+        <div class="bg-white p-8 rounded shadow-2xl w-80 text-center border-t-4 border-black">
+            <h2 class="font-serif italic text-2xl mb-2">Breeze Admin</h2>
             <input type="text" id="adm-user" placeholder="Username" class="w-full border p-2 mb-2 text-sm outline-none">
             <input type="password" id="adm-pass" placeholder="Password" class="w-full border p-2 mb-4 text-sm outline-none">
-            <button onclick="attemptLogin()" class="w-full bg-black text-white py-3 font-bold text-xs uppercase">Login</button>
-            <button onclick="closeLogin()" class="text-[10px] mt-4 uppercase underline text-stone-400 block w-full">Back</button>
+            <button onclick="attemptLogin()" class="w-full bg-black text-white py-3 font-bold text-xs uppercase tracking-widest">Login</button>
+            <button onclick="closeLogin()" class="text-[10px] mt-4 uppercase underline text-stone-400 cursor-pointer block w-full">Back to Shop</button>
         </div>
     </div>
 
-    <header class="bg-white p-4 border-b flex justify-between items-center">
+    <!-- HEADER -->
+    <header class="bg-white p-4 border-b sticky top-0 z-50 flex justify-between items-center shadow-sm">
         <h1 class="text-2xl font-serif italic cursor-pointer" onclick="location.reload()">Breeze.</h1>
-        <button onclick="openLogin()" class="text-[9px] bg-stone-100 px-3 py-2 uppercase font-bold border rounded">Admin Panel</button>
+        <div class="flex gap-2">
+            <button onclick="showSection('track')" class="text-[9px] bg-white px-2 py-2 uppercase font-bold border rounded">My Orders</button>
+            <button onclick="openLogin()" class="text-[9px] bg-stone-100 px-2 py-2 uppercase font-bold border rounded">Admin</button>
+        </div>
     </header>
 
-    <!-- ADMIN PANEL -->
-    <main class="admin-section max-w-6xl mx-auto p-6">
+    <!-- SHOP SECTION -->
+    <main class="shop-section max-w-[1400px] mx-auto p-4">
+        <div id="shop-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+            <!-- Products load here -->
+        </div>
+    </main>
+
+    <!-- TRACKING SECTION -->
+    <main class="order-tracking max-w-3xl mx-auto p-6">
+        <h2 class="text-xl font-bold mb-6 uppercase">Order History</h2>
+        <div id="customer-order-list" class="space-y-4"></div>
+    </main>
+
+    <!-- ADMIN SECTION -->
+    <main class="admin-section max-w-[1600px] mx-auto p-6">
         <div class="flex justify-between items-center mb-8 border-b pb-4">
-            <h2 class="text-xl font-black uppercase tracking-tighter">Orders Management</h2>
+            <h2 class="text-2xl font-black uppercase tracking-tighter">Control Center</h2>
             <button onclick="location.reload()" class="bg-red-500 text-white px-4 py-2 text-[10px] font-bold uppercase">Logout</button>
         </div>
 
-        <div id="admin-order-list" class="grid grid-cols-1 gap-4">
-            <!-- Orders will appear here -->
-            <p class="text-stone-400 text-sm">Loading orders...</p>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- PRODUCT EDITOR -->
+            <div class="bg-white p-6 border shadow-sm h-fit">
+                <h3 class="font-black uppercase text-xs mb-4">Add/Edit Perfume</h3>
+                <form id="pForm" class="space-y-3 text-[11px]">
+                    <input type="text" id="name" placeholder="Perfume Name" class="w-full border p-2" required>
+                    <input type="text" id="brand" placeholder="Brand" class="w-full border p-2" required>
+                    <div class="flex items-center gap-2 p-2 bg-stone-100 border rounded">
+                        <input type="checkbox" id="isStockOut"> <label for="isStockOut" class="font-bold text-red-600 uppercase">Stock Out</label>
+                    </div>
+                    <div class="grid grid-cols-3 gap-1">
+                        <input type="number" id="p1" placeholder="1ml Price"><input type="number" id="p3" placeholder="3ml Price"><input type="number" id="p10" placeholder="10ml Price">
+                    </div>
+                    <input type="file" id="fileIn" class="w-full border p-1">
+                    <input type="hidden" id="imgUrl">
+                    <button type="submit" class="w-full bg-black text-white py-3 font-bold uppercase mt-2">Save Product</button>
+                </form>
+                
+                <div class="mt-6 border-t pt-4">
+                    <h4 class="text-[10px] font-bold mb-2 uppercase">Current Inventory</h4>
+                    <div id="admin-product-list" class="space-y-1 h-64 overflow-y-auto scrollbar-hide"></div>
+                </div>
+            </div>
+
+            <!-- ORDER MANAGER -->
+            <div class="lg:col-span-2">
+                <h3 class="font-black uppercase text-xs mb-4">Manage Orders</h3>
+                <div id="admin-order-list" class="space-y-4"></div>
+            </div>
         </div>
     </main>
 
@@ -49,119 +95,133 @@
         const SUPABASE_KEY = 'sb_publishable_UaeY_Kqvy5EZsDoL3nmuDQ_SW_0HrwS';
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        let orders = [];
+        let inventory = []; let orders = [];
 
-        async function loadOrders() {
-            console.log("Fetching orders...");
-            const { data, error } = await _supabase
-                .from('orders')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            if (error) {
-                console.error("Fetch Error:", error);
-                document.getElementById('admin-order-list').innerHTML = `<p class="text-red-500">Error loading data: ${error.message}</p>`;
-                return;
-            }
-
-            orders = data || [];
-            console.log("Orders loaded:", orders.length);
+        async function loadData() {
+            const { data: pData } = await _supabase.from('perfumes').select('*');
+            const { data: oData } = await _supabase.from('orders').select('*').order('created_at', { ascending: false });
+            inventory = pData || []; orders = oData || [];
+            renderShop();
             renderAdmin();
         }
 
-        function renderAdmin() {
-            const list = document.getElementById('admin-order-list');
-            if (orders.length === 0) {
-                list.innerHTML = `<div class="p-10 text-center border-2 border-dashed text-stone-400">No orders found in database.</div>`;
-                return;
+        // NAVIGATION
+        function showSection(sec) {
+            document.body.classList.remove('admin-mode', 'track-mode');
+            if(sec === 'admin') document.body.classList.add('admin-mode');
+            if(sec === 'track') {
+                document.body.classList.add('track-mode');
+                renderCustomerOrders();
             }
+        }
 
-            list.innerHTML = orders.map(o => `
-                <div class="bg-white p-5 border shadow-sm rounded flex flex-col md:flex-row justify-between gap-4">
-                    <div class="flex-1">
-                        <div class="flex items-center gap-3 mb-2">
-                            <span class="font-black text-blue-600 text-sm">${o.orderID || 'NO ID'}</span>
-                            <span class="text-[10px] text-stone-400">${o.orderDate || ''}</span>
-                        </div>
-                        <p class="text-sm font-bold">${o.customer || 'Unknown'}</p>
-                        <p class="text-xs text-stone-500">${o.phone || 'No Phone'}</p>
-                        <div class="mt-3 flex gap-4">
-                            <label class="flex items-center gap-2 cursor-pointer bg-stone-50 px-2 py-1 rounded border">
-                                <input type="checkbox" ${o.isPaid ? 'checked' : ''} 
-                                    onchange="updateOrder('${o.orderID}', {isPaid: this.checked})"> 
-                                <span class="text-[10px] font-bold ${o.isPaid ? 'text-green-600' : 'text-red-500'}">PAID</span>
-                            </label>
-                            <label class="flex items-center gap-2 cursor-pointer bg-stone-50 px-2 py-1 rounded border">
-                                <input type="checkbox" ${o.isRefunded ? 'checked' : ''} 
-                                    onchange="updateOrder('${o.orderID}', {isRefunded: this.checked})"> 
-                                <span class="text-[10px] font-bold text-orange-600">REFUNDED</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="w-full md:w-64 flex flex-col gap-2 border-t md:border-t-0 md:border-l pt-4 md:pt-0 md:pl-4">
-                        <p class="text-[10px] font-bold uppercase text-stone-400">Status</p>
-                        <select onchange="updateOrder('${o.orderID}', {status: this.value})" 
-                            class="border p-2 text-xs font-bold uppercase bg-white">
-                            <option ${o.status === 'Order Received' ? 'selected' : ''}>Order Received</option>
-                            <option ${o.status === 'Dispatched' ? 'selected' : ''}>Dispatched</option>
-                            <option ${o.status === 'Complete' ? 'selected' : ''}>Complete</option>
-                            <option ${o.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
-                        </select>
-                        <button onclick="deleteOrder('${o.orderID}')" 
-                            class="mt-auto text-red-500 text-[10px] font-black uppercase text-left hover:underline">
-                            Permanently Delete
-                        </button>
-                    </div>
+        // RENDER SHOP
+        function renderShop() {
+            document.getElementById('shop-grid').innerHTML = inventory.map(p => `
+                <div class="bg-white border p-2 shadow-sm ${p.isStockOut ? 'opacity-50' : ''}">
+                    <img src="${p.img || ''}" class="w-full h-40 object-cover bg-stone-100 mb-2">
+                    <p class="text-[8px] uppercase text-stone-400 font-bold">${p.brand}</p>
+                    <h2 class="font-bold text-[11px] truncate">${p.name}</h2>
+                    <p class="text-[10px] mt-1">Starting ৳${p.prices?.['1ml'] || 'N/A'}</p>
                 </div>
             `).join('');
         }
 
-        async function updateOrder(oid, updateObj) {
-            console.log("Updating:", oid, updateObj);
-            const { error } = await _supabase
-                .from('orders')
-                .update(updateObj)
-                .eq('orderID', oid);
+        // RENDER ADMIN
+        function renderAdmin() {
+            // Render Product List
+            document.getElementById('admin-product-list').innerHTML = inventory.map(p => `
+                <div class="flex justify-between bg-stone-50 p-2 border mb-1 text-[10px]">
+                    <span class="truncate w-32">${p.name}</span>
+                    <button onclick="deleteProduct('${p.id}')" class="text-red-500 font-bold">DELETE</button>
+                </div>`).join('');
 
-            if (error) {
-                alert("Update failed: " + error.message);
-            } else {
-                loadOrders(); // Refresh
+            // Render Orders
+            document.getElementById('admin-order-list').innerHTML = orders.map(o => `
+                <div class="bg-white p-4 border text-[10px] flex flex-col md:flex-row justify-between gap-4">
+                    <div>
+                        <p class="font-black text-blue-600">${o.orderID}</p>
+                        <p><b>${o.customer}</b> (${o.phone})</p>
+                        <label class="flex items-center gap-2 mt-2">
+                            <input type="checkbox" ${o.isPaid ? 'checked' : ''} onchange="updateOrder('${o.orderID}', {isPaid: this.checked})"> 
+                            <span class="font-bold ${o.isPaid ? 'text-green-600' : 'text-red-500'}">PAID</span>
+                        </label>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <select onchange="updateOrder('${o.orderID}', {status: this.value})" class="border p-1 bg-stone-50">
+                            <option ${o.status==='Order Received'?'selected':''}>Order Received</option>
+                            <option ${o.status==='Dispatched'?'selected':''}>Dispatched</option>
+                            <option ${o.status==='Complete'?'selected':''}>Complete</option>
+                        </select>
+                        <button onclick="deleteOrder('${o.orderID}')" class="text-red-500 text-left underline">DELETE ORDER</button>
+                    </div>
+                </div>`).join('');
+        }
+
+        // --- DATABASE ACTIONS ---
+
+        // DELETE PRODUCT (uses 'id')
+        async function deleteProduct(id) {
+            if(confirm("Delete this perfume?")) {
+                await _supabase.from('perfumes').delete().eq('id', id);
+                loadData();
             }
         }
 
+        // DELETE ORDER (uses 'orderID' because 'id' is missing in your table)
         async function deleteOrder(oid) {
-            if (!confirm("Delete this order? This cannot be undone.")) return;
-            
-            const { error } = await _supabase
-                .from('orders')
-                .delete()
-                .eq('orderID', oid);
-
-            if (error) {
-                alert("Delete failed: " + error.message);
-            } else {
-                loadOrders(); // Refresh
+            if(confirm("Delete this order?")) {
+                await _supabase.from('orders').delete().eq('orderID', oid);
+                loadData();
             }
         }
 
-        // Login Helper
+        // UPDATE ORDER
+        async function updateOrder(oid, obj) {
+            await _supabase.from('orders').update(obj).eq('orderID', oid);
+            loadData();
+        }
+
+        // ADD PRODUCT
+        document.getElementById('pForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const p = {
+                id: "P-" + Date.now(),
+                name: document.getElementById('name').value,
+                brand: document.getElementById('brand').value,
+                img: document.getElementById('imgUrl').value || 'https://via.placeholder.com/200',
+                prices: { 
+                    '1ml': document.getElementById('p1').value, 
+                    '3ml': document.getElementById('p3').value, 
+                    '10ml': document.getElementById('p10').value 
+                },
+                isStockOut: document.getElementById('isStockOut').checked
+            };
+            const { error } = await _supabase.from('perfumes').insert([p]);
+            if(error) alert(error.message); else { alert("Added!"); loadData(); e.target.reset(); }
+        };
+
+        // IMAGE UPLOAD (ImgBB)
+        document.getElementById('fileIn').onchange = async (e) => {
+            const fd = new FormData(); fd.append('image', e.target.files[0]);
+            const res = await fetch('https://api.imgbb.com/1/upload?key=73d04afd891df63c360b510165eb42f4', { method: 'POST', body: fd });
+            const d = await res.json(); 
+            document.getElementById('imgUrl').value = d.data.url; 
+            alert("Image Uploaded Successfully");
+        };
+
+        // LOGIN LOGIC
         function attemptLogin() {
-            const u = document.getElementById('adm-user').value;
-            const p = document.getElementById('adm-pass').value;
-            if(u === 'admin' && p === 'ad123min') {
-                document.body.classList.add('admin-mode');
+            if(document.getElementById('adm-user').value === 'admin' && document.getElementById('adm-pass').value === 'ad123min') {
                 closeLogin();
-                loadOrders();
-            } else {
-                alert("Invalid Credentials");
-            }
+                showSection('admin');
+            } else { alert("Unauthorized"); }
         }
 
         function openLogin() { document.getElementById('login-modal').classList.add('show'); }
         function closeLogin() { document.getElementById('login-modal').classList.remove('show'); }
 
+        window.onload = loadData;
     </script>
 </body>
 </html>
