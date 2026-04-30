@@ -1,280 +1,86 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Breeze | Luxury Decants</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        .admin-section, .order-tracking, .login-overlay { display: none; }
-        body.admin-mode .admin-section { display: block; }
-        body.admin-mode .shop-section, body.admin-mode .order-tracking { display: none; }
-        body.track-mode .order-tracking { display: block; }
-        body.track-mode .shop-section, body.track-mode .admin-section { display: none; }
-        .active-filter { text-decoration: underline; font-weight: 900; color: #000; }
-        #custom-cart { transform: translateX(100%); transition: 0.3s ease-in-out; z-index: 1000; }
-        #custom-cart.open { transform: translateX(0); }
-        .perfume-card img { height: 220px; object-fit: cover; }
-        .login-overlay.show { display: flex; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-    </style>
-</head>
-<body class="bg-stone-50 text-stone-900">
+// --- UPDATED ADMIN ACTIONS ---
 
-    <div id="login-modal" class="login-overlay">
-        <div class="bg-white p-8 rounded shadow-2xl w-80 text-center border-t-4 border-black">
-            <h2 class="font-serif italic text-2xl mb-2">Breeze Admin</h2>
-            <input type="text" id="adm-user" placeholder="Username" class="w-full border p-2 mb-2 text-sm outline-none">
-            <input type="password" id="adm-pass" placeholder="Password" class="w-full border p-2 mb-4 text-sm outline-none">
-            <button onclick="attemptLogin()" class="w-full bg-black text-white py-3 font-bold text-xs uppercase tracking-widest">Login</button>
-            <button onclick="closeLogin()" class="text-[10px] mt-4 uppercase underline text-stone-400 cursor-pointer block w-full">Back to Shop</button>
-        </div>
-    </div>
+async function updateAny(oid, obj) {
+    console.log("Attempting to update Order:", oid, "with data:", obj);
+    
+    // We use .eq('orderID', oid) because 'id' is confirmed missing in your DB
+    const { data, error } = await _supabase
+        .from('orders')
+        .update(obj)
+        .eq('orderID', oid) 
+        .select();
 
-    <header class="bg-white p-4 border-b sticky top-0 z-50 flex justify-between items-center shadow-sm">
-        <div class="flex items-center gap-2 cursor-pointer" onclick="resetShop()">
-            <h1 class="text-2xl font-serif italic">Breeze.</h1>
-        </div>
-        <div class="flex gap-2">
-            <button onclick="showSection('track')" class="text-[9px] bg-white px-2 py-2 uppercase font-bold border rounded">Track Order</button>
-            <button onclick="openLogin()" class="text-[9px] bg-stone-100 px-2 py-2 uppercase font-bold border rounded">Admin</button>
-            <button onclick="toggleCart()" class="bg-black text-white px-3 py-2 text-[9px] uppercase font-bold shop-section rounded">Bag (<span id="cart-count">0</span>)</button>
-        </div>
-    </header>
+    if (error) {
+        console.error("Update failed:", error.message);
+        alert("Update Failed: " + error.message);
+    } else {
+        console.log("Update success:", data);
+        await loadData(); // Refresh the list to show changes
+    }
+}
 
-    <main class="shop-section max-w-[1600px] mx-auto p-4">
-        <div class="mb-6 space-y-4 text-center">
-            <input type="text" id="globalSearch" oninput="handleSearch()" placeholder="Search names, brands..." class="w-full max-w-2xl mx-auto block p-4 border rounded-full text-xs outline-none shadow-sm">
-            <div class="flex gap-4 text-[10px] uppercase font-bold border-b pb-2 overflow-x-auto justify-center scrollbar-hide">
-                <button onclick="setSeason('all')" class="active-filter filter-link" id="f-all">All Collections</button>
-                <button onclick="setSeason('Summer')" class="filter-link" id="f-Summer">Summer</button>
-                <button onclick="setSeason('Winter')" class="filter-link" id="f-Winter">Winter</button>
-                <button onclick="setSeason('Spring')" class="filter-link" id="f-Spring">Spring</button>
-                <button onclick="setSeason('Autumn')" class="filter-link" id="f-Autumn">Autumn</button>
-            </div>
-        </div>
-        <div class="flex flex-col md:flex-row gap-8">
-            <aside class="hidden md:block w-48 shrink-0">
-                <h3 class="text-[10px] uppercase font-black mb-4 border-b pb-2 tracking-widest">Explore Brands</h3>
-                <ul class="text-[11px] space-y-3 uppercase text-stone-400" id="brand-menu"></ul>
-            </aside>
-            <div id="shop-grid" class="flex-1 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6"></div>
-        </div>
-    </main>
+async function deleteAny(oid) {
+    if (!confirm("Are you sure you want to permanently delete order " + oid + "?")) return;
 
-    <div id="custom-cart" class="fixed right-0 top-0 h-full w-full sm:w-96 bg-white shadow-2xl p-6 flex flex-col overflow-y-auto">
-        <div class="flex justify-between items-center border-b pb-4 mb-4">
-            <h2 class="font-bold uppercase text-xs tracking-widest">Guest Checkout</h2>
-            <button onclick="toggleCart()" class="text-xs uppercase font-bold text-stone-400 hover:text-black">✕ Close</button>
-        </div>
-        <div id="cart-items" class="space-y-4 mb-6"></div>
-        <div id="checkout-form" class="space-y-3 border-t pt-4">
-            <input type="text" id="cust-name" placeholder="Full Name *" class="w-full border p-2 text-xs outline-none">
-            <input type="tel" id="cust-phone" maxlength="11" placeholder="Phone Number *" class="w-full border p-2 text-xs outline-none">
-            <select id="cust-division" class="w-full border p-2 text-xs bg-white"><option value="">Select Division *</option><option>Barishal</option><option>Chattogram</option><option>Dhaka</option><option>Khulna</option><option>Mymensingh</option><option>Rajshahi</option><option>Rangpur</option><option>Sylhet</option></select>
-            <select id="cust-district" class="w-full border p-2 text-xs bg-white"><option value="">Select District *</option></select>
-            <div class="grid grid-cols-2 gap-2"><input type="text" id="cust-house" placeholder="House No. *" class="border p-2 text-xs"><input type="text" id="cust-road" placeholder="Road No. *" class="border p-2 text-xs"></div>
-            <textarea id="cust-details" placeholder="Detailed Address *" class="w-full border p-2 text-xs h-16 outline-none"></textarea>
-            <h3 class="text-[10px] font-black uppercase mt-4 text-red-600">Payment (01725805104)</h3>
-            <div class="grid grid-cols-2 gap-2"><select id="pay-method" class="border p-2 text-xs"><option>bKash</option><option>Nagad</option></select><input type="text" id="pay-trx" placeholder="Transaction ID *" class="border p-2 text-xs bg-stone-50 font-bold outline-none"></div>
-            <div class="flex justify-between font-bold text-base mt-4 pt-2 border-t"><span>Total:</span><span>৳<span id="grand-total">0</span></span></div>
-            <button onclick="placeOrder()" class="w-full bg-black text-white py-4 text-[10px] uppercase font-bold mt-4 tracking-widest">Confirm Order</button>
-        </div>
-    </div>
+    console.log("Attempting to delete Order:", oid);
+    
+    const { error } = await _supabase
+        .from('orders')
+        .delete()
+        .eq('orderID', oid);
 
-    <main class="order-tracking max-w-3xl mx-auto p-6">
-        <h2 class="text-xl font-bold mb-6 uppercase tracking-tighter">My Orders</h2>
-        <div id="customer-order-list" class="space-y-4"></div>
-    </main>
+    if (error) {
+        console.error("Delete failed:", error.message);
+        alert("Delete Failed: " + error.message);
+    } else {
+        console.log("Delete success");
+        await loadData(); // Refresh the list
+    }
+}
 
-    <main class="admin-section max-w-[1600px] mx-auto p-6">
-        <div class="flex justify-between items-center mb-8 border-b pb-4">
-            <h2 class="text-2xl font-black uppercase tracking-tighter">Admin Control Center</h2>
-            <button onclick="location.reload()" class="bg-red-500 text-white px-4 py-2 text-[10px] font-bold uppercase rounded">Logout</button>
-        </div>
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div class="bg-white p-6 border shadow-sm h-fit sticky top-24">
-                <h3 class="font-black uppercase text-xs mb-4">Inventory Editor</h3>
-                <form id="pForm" class="space-y-3 text-[11px]">
-                    <input type="hidden" id="edit-id">
-                    <input type="text" id="name" placeholder="Name" class="w-full border p-2" required>
-                    <input type="text" id="brand" placeholder="Brand" class="w-full border p-2" required>
-                    <select id="season" class="w-full border p-2 bg-white"><option>Summer</option><option>Winter</option><option>Spring</option><option>Autumn</option></select>
-                    <div class="flex items-center gap-2 p-2 bg-stone-100 border rounded">
-                        <input type="checkbox" id="isStockOut"> <label for="isStockOut" class="font-bold text-red-600 uppercase">Stock Out</label>
-                    </div>
-                    <input type="text" id="profile" placeholder="Scent Notes" class="w-full border p-2">
-                    <div class="grid grid-cols-3 gap-1">
-                        <input type="number" id="p1" placeholder="1ml"><input type="number" id="p3" placeholder="3ml"><input type="number" id="p5" placeholder="5ml">
-                        <input type="number" id="p10" placeholder="10ml"><input type="number" id="p15" placeholder="15ml"><input type="number" id="p30" placeholder="30ml">
-                        <input type="number" id="p50" placeholder="50ml"><input type="number" id="p100" placeholder="100ml"><input type="number" id="p200" placeholder="200ml">
-                    </div>
-                    <input type="number" id="disc" placeholder="Discount %" class="w-full border p-2 bg-yellow-50">
-                    <input type="file" id="fileIn" class="w-full border p-1">
-                    <input type="hidden" id="imgUrl"><button type="submit" class="w-full bg-black text-white py-3 font-bold uppercase tracking-widest mt-2">Save Perfume</button>
-                </form>
-                <div class="mt-6 border-t pt-4">
-                    <input type="text" id="adminSearch" oninput="renderAdmin()" placeholder="Search Inventory..." class="w-full border p-2 text-[10px] mb-2 outline-none">
-                    <div id="admin-product-list" class="space-y-1 h-64 overflow-y-auto pr-2 scrollbar-hide"></div>
+// --- UPDATED RENDER FUNCTION ---
+// Ensure the buttons pass 'o.orderID' instead of 'o.id'
+
+function renderAdmin() {
+    const list = document.getElementById('admin-order-list');
+    if (!list) return;
+
+    list.innerHTML = orders.map(o => `
+        <div class="bg-white p-4 border text-[10px] grid grid-cols-1 md:grid-cols-2 gap-4 mb-2 shadow-sm">
+            <div>
+                <p class="font-black text-blue-600 text-xs">${o.orderID}</p>
+                <p><b>Customer:</b> ${o.customer}</p>
+                <p><b>Phone:</b> ${o.phone}</p>
+                <div class="mt-2">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" ${o.isPaid ? 'checked' : ''} 
+                            onchange="updateAny('${o.orderID}', {isPaid: this.checked})"> 
+                        <span class="font-bold ${o.isPaid ? 'text-green-600' : 'text-red-500'}">
+                            ${o.isPaid ? 'PAID' : 'MARK AS PAID'}
+                        </span>
+                    </label>
                 </div>
             </div>
-            <div class="lg:col-span-2">
-                <div class="flex justify-between items-center mb-4"><h3 class="font-black uppercase text-xs">Manage Orders</h3><input type="text" id="orderSearch" oninput="renderAdmin()" placeholder="Search Name/Phone..." class="border p-2 text-[10px] w-64 outline-none"></div>
-                <div id="admin-order-list" class="space-y-4"></div>
+            <div class="flex flex-col gap-2">
+                <select onchange="updateAny('${o.orderID}', {status: this.value})" 
+                    class="border p-1 bg-stone-50 font-bold uppercase">
+                    <option ${o.status === 'Order Received' ? 'selected' : ''}>Order Received</option>
+                    <option ${o.status === 'Dispatched' ? 'selected' : ''}>Dispatched</option>
+                    <option ${o.status === 'Complete' ? 'selected' : ''}>Complete</option>
+                    <option ${o.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+                </select>
+                
+                <label class="flex items-center gap-2 text-red-600 font-bold cursor-pointer">
+                    <input type="checkbox" ${o.isRefunded ? 'checked' : ''} 
+                        onchange="updateAny('${o.orderID}', {isRefunded: this.checked})"> 
+                    <span>MARK AS REFUNDED</span>
+                </label>
+
+                <button onclick="deleteAny('${o.orderID}')" 
+                    class="text-red-500 underline text-left mt-auto font-bold uppercase">
+                    Delete Order
+                </button>
             </div>
         </div>
-    </main>
-
-    <script>
-        const SUPABASE_URL = 'https://pcxwmgjsbvlyyedhjujc.supabase.co'; 
-        const SUPABASE_KEY = 'sb_publishable_UaeY_Kqvy5EZsDoL3nmuDQ_SW_0HrwS';
-        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        const districts = ["Bagerhat","Bandarban","Barguna","Barishal","Bhola","Bogra","Brahmanbaria","Chandpur","Chapai Nawabganj","Chattogram","Chuadanga","Comilla","Cox's Bazar","Dhaka","Dinajpur","Faridpur","Feni","Gaibandha","Gazipur","Gopalganj","Habiganj","Jamalpur","Jessore","Jhalokati","Jhenaidah","Joypurhat","Khagrachari","Khulna","Kishoreganj","Kurigram","Kushtia","Lakshmipur","Lalmonirhat","Madaripur","Magura","Manikganj","Meherpur","Moulvibazar","Munshiganj","Mymensingh","Naogaon","Narail","Narayanganj","Narsingdi","Natore","Netrokona","Nilphamari","Noakhali","Pabna","Panchagarh","Patuakhali","Pirojpur","Rajbari","Rajshahi","Rangamati","Rangpur","Satkhira","Shariatpur","Sherpur","Sirajganj","Sunamganj","Sylhet","Tangail","Thakurgaon"];
-        let inventory = []; let orders = []; let filteredItems = []; let cart = [];
-
-        async function loadData() {
-            const { data: pData } = await _supabase.from('perfumes').select('*');
-            const { data: oData } = await _supabase.from('orders').select('*').order('created_at', { ascending: false });
-            inventory = pData || []; orders = oData || []; filteredItems = inventory;
-            renderShop(); renderAdmin();
-        }
-
-        function attemptLogin() { if(document.getElementById('adm-user').value === 'admin' && document.getElementById('adm-pass').value === 'ad123min') { closeLogin(); showSection('admin'); } else { alert("Unauthorized"); } }
-        function openLogin() { document.getElementById('login-modal').classList.add('show'); }
-        function closeLogin() { document.getElementById('login-modal').classList.remove('show'); }
-        function showSection(sec) { document.body.classList.remove('admin-mode', 'track-mode'); if(sec === 'admin') document.body.classList.add('admin-mode'); if(sec === 'track') { document.body.classList.add('track-mode'); renderCustomerOrders(); } window.scrollTo(0,0); }
-        function resetShop() { showSection('shop'); filteredItems = inventory; renderShop(); }
-        function toggleCart() { document.getElementById('custom-cart').classList.toggle('open'); }
-
-        function renderShop(items = filteredItems) {
-            document.getElementById('shop-grid').innerHTML = items.map(p => {
-                const sz = Object.entries(p.prices || {}).filter(([k,v]) => v && v > 0);
-                return `<div class="perfume-card bg-white border flex flex-col p-2 shadow-sm ${p.isStockOut ? 'opacity-60' : ''}">
-                    <img src="${p.img || ''}" class="w-full mb-2 bg-stone-100">
-                    <p class="text-[8px] uppercase text-stone-400 font-black tracking-widest">${p.brand}</p>
-                    <h2 class="font-bold text-[11px] truncate mb-2">${p.name}</h2>
-                    <select id="size-${p.id}" class="text-[10px] border mb-2 bg-white p-1" ${p.isStockOut ? 'disabled' : ''}>
-                        ${sz.map(([ml, pr]) => `<option value="${p.discount>0?Math.round(pr-(pr*p.discount/100)):pr}">${ml} - ৳${p.discount>0?Math.round(pr-(pr*p.discount/100)):pr}</option>`).join('')}
-                    </select>
-                    <button onclick="addToCart('${p.id}')" class="w-full ${p.isStockOut?'bg-stone-300':'bg-black text-white'} py-2 text-[9px] uppercase font-black" ${p.isStockOut?'disabled':''}>${p.isStockOut?'Stock Out':'Add to Bag'}</button>
-                </div>`;
-            }).join('');
-            renderBrandMenu();
-        }
-
-        function addToCart(id) {
-            const p = inventory.find(x => x.id === id); 
-            const sel = document.getElementById(`size-${id}`);
-            const price = parseFloat(sel.value);
-            const sizeLabel = sel.options[sel.selectedIndex].text;
-            cart.push({ id, name: p.name, size: sizeLabel, price, img: p.img, qty: 1 });
-            updateCartUI(); toggleCart();
-        }
-
-        function updateCartUI() {
-            document.getElementById('cart-count').innerText = cart.length;
-            let sub = cart.reduce((a, b) => a + (b.price * b.qty), 0);
-            document.getElementById('cart-items').innerHTML = cart.map((item, i) => `
-                <div class="flex justify-between items-center text-[10px] border-b pb-2">
-                    <div class="flex gap-2"><img src="${item.img}" class="w-8 h-8 object-cover"><div><p class="font-bold">${item.name}</p><p class="text-stone-400">${item.size}</p></div></div>
-                    <button onclick="cart.splice(${i},1);updateCartUI()" class="text-red-500">✕</button>
-                </div>`).join('');
-            document.getElementById('grand-total').innerText = cart.length ? sub + 100 : 0;
-        }
-
-        async function placeOrder() {
-            const now = new Date();
-            const o = {
-                orderID: `BRZ-${now.getTime().toString().slice(-6)}`,
-                customer: document.getElementById('cust-name').value,
-                phone: document.getElementById('cust-phone').value,
-                address: `${document.getElementById('cust-house').value}, ${document.getElementById('cust-road').value}, ${document.getElementById('cust-details').value}, ${document.getElementById('cust-district').value}`,
-                items: [...cart], total: parseFloat(document.getElementById('grand-total').innerText),
-                method: document.getElementById('pay-method').value, trx: document.getElementById('pay-trx').value,
-                status: 'Order Received', orderDate: now.toLocaleDateString(), orderTime: now.toLocaleTimeString(),
-                isPaid: false, isRefunded: false, adminNote: ''
-            };
-            const { error } = await _supabase.from('orders').insert([o]);
-            if(!error) { alert("Ordered!"); cart=[]; updateCartUI(); toggleCart(); loadData(); showSection('track'); }
-        }
-
-        function renderCustomerOrders() {
-            document.getElementById('customer-order-list').innerHTML = orders.map(o => `
-                <div class="bg-white p-4 border text-[11px] shadow-sm">
-                    <div class="flex justify-between mb-2"><b>${o.orderID}</b> <span class="bg-black text-white px-2 py-0.5 rounded-full text-[9px] uppercase">${o.status}</span></div>
-                    <p class="text-stone-400 mb-2">${o.orderDate} | ${o.orderTime}</p>
-                    ${o.items.map(i => `<p>• ${i.name} (${i.size})</p>`).join('')}
-                    <div class="mt-2 border-t pt-2 font-bold flex justify-between"><span>Paid: ${o.isPaid?'Yes':'No'}</span><span>Total: ৳${o.total}</span></div>
-                </div>`).join('');
-        }
-
-        function renderAdmin() {
-            document.getElementById('admin-order-list').innerHTML = orders.map(o => `
-                <div class="bg-white p-4 border text-[10px] grid grid-cols-2 gap-4">
-                    <div>
-                        <p class="font-black text-blue-600">${o.orderID}</p>
-                        <p><b>Cust:</b> ${o.customer} (${o.phone})</p>
-                        <p><b>Trx:</b> ${o.trx}</p>
-                        <label class="flex items-center gap-2 mt-2"><input type="checkbox" ${o.isPaid?'checked':''} onchange="updateAny('${o.orderID}', {isPaid: this.checked})"> <span class="font-bold">PAID</span></label>
-                    </div>
-                    <div class="flex flex-col gap-1">
-                        <select onchange="updateAny('${o.orderID}', {status: this.value})" class="border p-1 bg-stone-50">
-                            <option ${o.status==='Order Received'?'selected':''}>Order Received</option>
-                            <option ${o.status==='Dispatched'?'selected':''}>Dispatched</option>
-                            <option ${o.status==='Complete'?'selected':''}>Complete</option>
-                            <option ${o.status==='Cancelled'?'selected':''}>Cancelled</option>
-                        </select>
-                        <label class="flex items-center gap-2 text-red-600 font-bold"><input type="checkbox" ${o.isRefunded?'checked':''} onchange="updateAny('${o.orderID}', {isRefunded: this.checked})"> REFUNDED</label>
-                        <button onclick="deleteAny('${o.orderID}')" class="text-red-500 underline text-left mt-2">DELETE ORDER</button>
-                    </div>
-                </div>`).join('');
-
-            document.getElementById('admin-product-list').innerHTML = inventory.map(p => `
-                <div class="flex justify-between bg-stone-50 p-1 border mb-1 text-[9px]"><span>${p.name}</span><button onclick="deleteProduct('${p.id}')" class="text-red-500">Del</button></div>`).join('');
-        }
-
-        // DYNAMIC IDENTIFIER LOGIC
-        async function updateAny(oid, obj) {
-            // Find row by orderID instead of the missing 'id' column
-            const { error } = await _supabase.from('orders').update(obj).eq('orderID', oid);
-            if(error) alert(error.message); else loadData();
-        }
-
-        async function deleteAny(oid) {
-            if(confirm("Delete Order?")) {
-                const { error } = await _supabase.from('orders').delete().eq('orderID', oid);
-                if(error) alert(error.message); else loadData();
-            }
-        }
-
-        async function deleteProduct(id) {
-            if(confirm("Delete Product?")) {
-                const { error } = await _supabase.from('perfumes').delete().eq('id', id);
-                loadData();
-            }
-        }
-
-        document.getElementById('pForm').onsubmit = async (e) => {
-            e.preventDefault();
-            const p = {
-                id: "P-"+Date.now(), name: document.getElementById('name').value, brand: document.getElementById('brand').value,
-                season: document.getElementById('season').value, img: document.getElementById('imgUrl').value || 'https://via.placeholder.com/200',
-                prices: { '1ml': document.getElementById('p1').value, '3ml': document.getElementById('p3').value, '10ml': document.getElementById('p10').value },
-                isStockOut: document.getElementById('isStockOut').checked
-            };
-            await _supabase.from('perfumes').upsert([p]); loadData();
-        };
-
-        document.getElementById('fileIn').onchange = async (e) => {
-            const fd = new FormData(); fd.append('image', e.target.files[0]);
-            const res = await fetch('https://api.imgbb.com/1/upload?key=73d04afd891df63c360b510165eb42f4', { method: 'POST', body: fd });
-            const d = await res.json(); document.getElementById('imgUrl').value = d.data.url; alert("Ready");
-        };
-
-        const dSel2 = document.getElementById('cust-district'); districts.sort().forEach(d => dSel2.add(new Option(d, d)));
-        window.onload = loadData;
-    </script>
-</body>
-</html>
+    `).join('');
+}
