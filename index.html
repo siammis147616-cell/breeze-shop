@@ -1,86 +1,167 @@
-// --- UPDATED ADMIN ACTIONS ---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Breeze Admin | Fixed</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .admin-section, .order-tracking, .login-overlay { display: none; }
+        body.admin-mode .admin-section { display: block; }
+        body.admin-mode .shop-section, body.admin-mode .order-tracking { display: none; }
+        .login-overlay.show { display: flex; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; }
+    </style>
+</head>
+<body class="bg-stone-50 text-stone-900">
 
-async function updateAny(oid, obj) {
-    console.log("Attempting to update Order:", oid, "with data:", obj);
-    
-    // We use .eq('orderID', oid) because 'id' is confirmed missing in your DB
-    const { data, error } = await _supabase
-        .from('orders')
-        .update(obj)
-        .eq('orderID', oid) 
-        .select();
-
-    if (error) {
-        console.error("Update failed:", error.message);
-        alert("Update Failed: " + error.message);
-    } else {
-        console.log("Update success:", data);
-        await loadData(); // Refresh the list to show changes
-    }
-}
-
-async function deleteAny(oid) {
-    if (!confirm("Are you sure you want to permanently delete order " + oid + "?")) return;
-
-    console.log("Attempting to delete Order:", oid);
-    
-    const { error } = await _supabase
-        .from('orders')
-        .delete()
-        .eq('orderID', oid);
-
-    if (error) {
-        console.error("Delete failed:", error.message);
-        alert("Delete Failed: " + error.message);
-    } else {
-        console.log("Delete success");
-        await loadData(); // Refresh the list
-    }
-}
-
-// --- UPDATED RENDER FUNCTION ---
-// Ensure the buttons pass 'o.orderID' instead of 'o.id'
-
-function renderAdmin() {
-    const list = document.getElementById('admin-order-list');
-    if (!list) return;
-
-    list.innerHTML = orders.map(o => `
-        <div class="bg-white p-4 border text-[10px] grid grid-cols-1 md:grid-cols-2 gap-4 mb-2 shadow-sm">
-            <div>
-                <p class="font-black text-blue-600 text-xs">${o.orderID}</p>
-                <p><b>Customer:</b> ${o.customer}</p>
-                <p><b>Phone:</b> ${o.phone}</p>
-                <div class="mt-2">
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" ${o.isPaid ? 'checked' : ''} 
-                            onchange="updateAny('${o.orderID}', {isPaid: this.checked})"> 
-                        <span class="font-bold ${o.isPaid ? 'text-green-600' : 'text-red-500'}">
-                            ${o.isPaid ? 'PAID' : 'MARK AS PAID'}
-                        </span>
-                    </label>
-                </div>
-            </div>
-            <div class="flex flex-col gap-2">
-                <select onchange="updateAny('${o.orderID}', {status: this.value})" 
-                    class="border p-1 bg-stone-50 font-bold uppercase">
-                    <option ${o.status === 'Order Received' ? 'selected' : ''}>Order Received</option>
-                    <option ${o.status === 'Dispatched' ? 'selected' : ''}>Dispatched</option>
-                    <option ${o.status === 'Complete' ? 'selected' : ''}>Complete</option>
-                    <option ${o.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
-                </select>
-                
-                <label class="flex items-center gap-2 text-red-600 font-bold cursor-pointer">
-                    <input type="checkbox" ${o.isRefunded ? 'checked' : ''} 
-                        onchange="updateAny('${o.orderID}', {isRefunded: this.checked})"> 
-                    <span>MARK AS REFUNDED</span>
-                </label>
-
-                <button onclick="deleteAny('${o.orderID}')" 
-                    class="text-red-500 underline text-left mt-auto font-bold uppercase">
-                    Delete Order
-                </button>
-            </div>
+    <!-- ADMIN LOGIN -->
+    <div id="login-modal" class="login-overlay">
+        <div class="bg-white p-8 rounded shadow-2xl w-80 text-center">
+            <h2 class="font-serif italic text-2xl mb-4">Breeze Admin</h2>
+            <input type="text" id="adm-user" placeholder="Username" class="w-full border p-2 mb-2 text-sm outline-none">
+            <input type="password" id="adm-pass" placeholder="Password" class="w-full border p-2 mb-4 text-sm outline-none">
+            <button onclick="attemptLogin()" class="w-full bg-black text-white py-3 font-bold text-xs uppercase">Login</button>
+            <button onclick="closeLogin()" class="text-[10px] mt-4 uppercase underline text-stone-400 block w-full">Back</button>
         </div>
-    `).join('');
-}
+    </div>
+
+    <header class="bg-white p-4 border-b flex justify-between items-center">
+        <h1 class="text-2xl font-serif italic cursor-pointer" onclick="location.reload()">Breeze.</h1>
+        <button onclick="openLogin()" class="text-[9px] bg-stone-100 px-3 py-2 uppercase font-bold border rounded">Admin Panel</button>
+    </header>
+
+    <!-- ADMIN PANEL -->
+    <main class="admin-section max-w-6xl mx-auto p-6">
+        <div class="flex justify-between items-center mb-8 border-b pb-4">
+            <h2 class="text-xl font-black uppercase tracking-tighter">Orders Management</h2>
+            <button onclick="location.reload()" class="bg-red-500 text-white px-4 py-2 text-[10px] font-bold uppercase">Logout</button>
+        </div>
+
+        <div id="admin-order-list" class="grid grid-cols-1 gap-4">
+            <!-- Orders will appear here -->
+            <p class="text-stone-400 text-sm">Loading orders...</p>
+        </div>
+    </main>
+
+    <script>
+        const SUPABASE_URL = 'https://pcxwmgjsbvlyyedhjujc.supabase.co'; 
+        const SUPABASE_KEY = 'sb_publishable_UaeY_Kqvy5EZsDoL3nmuDQ_SW_0HrwS';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let orders = [];
+
+        async function loadOrders() {
+            console.log("Fetching orders...");
+            const { data, error } = await _supabase
+                .from('orders')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error("Fetch Error:", error);
+                document.getElementById('admin-order-list').innerHTML = `<p class="text-red-500">Error loading data: ${error.message}</p>`;
+                return;
+            }
+
+            orders = data || [];
+            console.log("Orders loaded:", orders.length);
+            renderAdmin();
+        }
+
+        function renderAdmin() {
+            const list = document.getElementById('admin-order-list');
+            if (orders.length === 0) {
+                list.innerHTML = `<div class="p-10 text-center border-2 border-dashed text-stone-400">No orders found in database.</div>`;
+                return;
+            }
+
+            list.innerHTML = orders.map(o => `
+                <div class="bg-white p-5 border shadow-sm rounded flex flex-col md:flex-row justify-between gap-4">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-3 mb-2">
+                            <span class="font-black text-blue-600 text-sm">${o.orderID || 'NO ID'}</span>
+                            <span class="text-[10px] text-stone-400">${o.orderDate || ''}</span>
+                        </div>
+                        <p class="text-sm font-bold">${o.customer || 'Unknown'}</p>
+                        <p class="text-xs text-stone-500">${o.phone || 'No Phone'}</p>
+                        <div class="mt-3 flex gap-4">
+                            <label class="flex items-center gap-2 cursor-pointer bg-stone-50 px-2 py-1 rounded border">
+                                <input type="checkbox" ${o.isPaid ? 'checked' : ''} 
+                                    onchange="updateOrder('${o.orderID}', {isPaid: this.checked})"> 
+                                <span class="text-[10px] font-bold ${o.isPaid ? 'text-green-600' : 'text-red-500'}">PAID</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer bg-stone-50 px-2 py-1 rounded border">
+                                <input type="checkbox" ${o.isRefunded ? 'checked' : ''} 
+                                    onchange="updateOrder('${o.orderID}', {isRefunded: this.checked})"> 
+                                <span class="text-[10px] font-bold text-orange-600">REFUNDED</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="w-full md:w-64 flex flex-col gap-2 border-t md:border-t-0 md:border-l pt-4 md:pt-0 md:pl-4">
+                        <p class="text-[10px] font-bold uppercase text-stone-400">Status</p>
+                        <select onchange="updateOrder('${o.orderID}', {status: this.value})" 
+                            class="border p-2 text-xs font-bold uppercase bg-white">
+                            <option ${o.status === 'Order Received' ? 'selected' : ''}>Order Received</option>
+                            <option ${o.status === 'Dispatched' ? 'selected' : ''}>Dispatched</option>
+                            <option ${o.status === 'Complete' ? 'selected' : ''}>Complete</option>
+                            <option ${o.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+                        </select>
+                        <button onclick="deleteOrder('${o.orderID}')" 
+                            class="mt-auto text-red-500 text-[10px] font-black uppercase text-left hover:underline">
+                            Permanently Delete
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function updateOrder(oid, updateObj) {
+            console.log("Updating:", oid, updateObj);
+            const { error } = await _supabase
+                .from('orders')
+                .update(updateObj)
+                .eq('orderID', oid);
+
+            if (error) {
+                alert("Update failed: " + error.message);
+            } else {
+                loadOrders(); // Refresh
+            }
+        }
+
+        async function deleteOrder(oid) {
+            if (!confirm("Delete this order? This cannot be undone.")) return;
+            
+            const { error } = await _supabase
+                .from('orders')
+                .delete()
+                .eq('orderID', oid);
+
+            if (error) {
+                alert("Delete failed: " + error.message);
+            } else {
+                loadOrders(); // Refresh
+            }
+        }
+
+        // Login Helper
+        function attemptLogin() {
+            const u = document.getElementById('adm-user').value;
+            const p = document.getElementById('adm-pass').value;
+            if(u === 'admin' && p === 'ad123min') {
+                document.body.classList.add('admin-mode');
+                closeLogin();
+                loadOrders();
+            } else {
+                alert("Invalid Credentials");
+            }
+        }
+
+        function openLogin() { document.getElementById('login-modal').classList.add('show'); }
+        function closeLogin() { document.getElementById('login-modal').classList.remove('show'); }
+
+    </script>
+</body>
+</html>
