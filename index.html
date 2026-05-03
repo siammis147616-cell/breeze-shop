@@ -233,7 +233,7 @@
   .product-img {
     width: 100%;
     aspect-ratio: 1;
-    object-fit: cover;
+    object-fit: contain;
     display: block;
     background: var(--gold-pale);
   }
@@ -765,7 +765,7 @@
 
 <!-- ═══════════════════════════ HEADER ═══════════════════════════ -->
 <header>
-  <div class="logo">
+  <div class="logo" onclick="showPage('shop')" style="cursor:pointer;" title="Go to homepage">
     Breeze
     <span>Perfume Decants</span>
   </div>
@@ -848,6 +848,7 @@
         <button class="admin-nav-item" onclick="adminNav('add-perfume', this)">Add Perfume</button>
         <button class="admin-nav-item" onclick="adminNav('inventory', this)">Inventory</button>
         <button class="admin-nav-item" onclick="adminNav('orders', this)">Orders</button>
+        <button class="admin-nav-item" onclick="adminNav('payment-methods', this)">Payment Methods</button>
         <hr style="border:none;border-top:1px solid rgba(184,147,90,0.15);margin:1rem 1.5rem;">
         <button class="admin-nav-item" onclick="adminLogout()" style="color:rgba(255,100,100,0.7);">Sign Out</button>
       </aside>
@@ -969,6 +970,9 @@
               <option value="winter">Winter</option>
               <option value="all">All Seasons</option>
             </select>
+            <select id="inv-brand-filter" onchange="filterInventoryBrand()" style="padding:9px 14px;border:1px solid var(--light-border);border-radius:var(--radius);font-family:'Jost',sans-serif;font-size:0.85rem;background:#fff;outline:none;">
+              <option value="">All Brands</option>
+            </select>
           </div>
           <div class="admin-card" style="overflow-x:auto;">
             <table class="data-table" id="inventory-table">
@@ -991,14 +995,77 @@
           </div>
         </div>
 
+        <!-- Payment Methods -->
+        <div class="admin-section" id="section-payment-methods">
+          <div class="admin-section-header">
+            <h2 class="admin-section-title">Payment Methods</h2>
+          </div>
+          <div class="admin-card">
+            <div class="admin-card-title">bKash (MFS)</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">bKash Number</label>
+                <input type="text" class="form-control" id="pm-bkash-number" placeholder="01XXXXXXXXX">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Account Type</label>
+                <select class="form-control" id="pm-bkash-type">
+                  <option value="Personal">Personal</option>
+                  <option value="Merchant">Merchant</option>
+                  <option value="Agent">Agent</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="toggle-wrap">
+                <label class="toggle">
+                  <input type="checkbox" id="pm-bkash-enabled" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+                <span style="font-size:0.85rem;color:var(--mid);">Enable bKash payment</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="admin-card">
+            <div class="admin-card-title">Bank Transfer</div>
+            <div class="form-group">
+              <div class="toggle-wrap">
+                <label class="toggle">
+                  <input type="checkbox" id="pm-bank-enabled">
+                  <span class="toggle-slider"></span>
+                </label>
+                <span style="font-size:0.85rem;color:var(--mid);">Enable bank transfer option</span>
+              </div>
+            </div>
+            <div id="bank-accounts-list" style="margin-top:1rem;"></div>
+            <button class="btn btn-outline btn-sm" onclick="addBankAccountRow()" style="margin-top:1rem;">+ Add Bank Account</button>
+          </div>
+
+          <div class="admin-card">
+            <div class="admin-card-title">Delivery Charge</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Flat Delivery Charge (৳)</label>
+                <input type="number" class="form-control" id="pm-delivery-charge" value="100" min="0">
+                <p class="hint-text">Applied to every order at checkout</p>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;margin-top:1rem;">
+            <button class="btn btn-primary" onclick="savePaymentSettings()">Save Settings</button>
+          </div>
+        </div>
+
         <!-- Orders -->
         <div class="admin-section" id="section-orders">
           <div class="admin-section-header">
             <h2 class="admin-section-title">Orders</h2>
           </div>
-          <div class="admin-search">
+          <div class="admin-search" style="flex-wrap:wrap;">
             <input type="text" placeholder="Search by order #, name, phone…" oninput="searchAdminOrders(this.value)" id="orders-search">
-            <select id="orders-status-filter" onchange="loadAdminOrders()" style="padding:9px 14px;border:1px solid var(--light-border);border-radius:var(--radius);font-family:'Jost',sans-serif;font-size:0.85rem;background:#fff;outline:none;">
+            <select id="orders-status-filter" onchange="applyOrderFilters()" style="padding:9px 14px;border:1px solid var(--light-border);border-radius:var(--radius);font-family:'Jost',sans-serif;font-size:0.85rem;background:#fff;outline:none;">
               <option value="">All Statuses</option>
               <option value="order received">Order Received</option>
               <option value="dispatched">Dispatched</option>
@@ -1006,6 +1073,9 @@
               <option value="canceled">Canceled</option>
               <option value="refunded">Refunded</option>
             </select>
+            <input type="date" id="orders-date-from" onchange="applyOrderFilters()" title="From date" style="padding:9px 12px;border:1px solid var(--light-border);border-radius:var(--radius);font-family:'Jost',sans-serif;font-size:0.85rem;background:#fff;outline:none;color:var(--dark);">
+            <input type="date" id="orders-date-to" onchange="applyOrderFilters()" title="To date" style="padding:9px 12px;border:1px solid var(--light-border);border-radius:var(--radius);font-family:'Jost',sans-serif;font-size:0.85rem;background:#fff;outline:none;color:var(--dark);">
+            <button class="btn btn-sm btn-outline" onclick="clearOrderFilters()">Clear</button>
           </div>
           <div id="admin-orders-list"><div class="loading"><div class="spinner"></div></div></div>
         </div>
@@ -1028,7 +1098,9 @@
       <div class="empty-state"><span class="serif">∅</span><p>Your cart is empty</p></div>
     </div>
     <div id="cart-footer" style="display:none;">
-      <div class="cart-total"><span>Total</span><strong id="cart-total-amount">৳0</strong></div>
+      <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;display:flex;justify-content:space-between;"><span>Subtotal</span><span id="cart-subtotal-amount">৳0</span></div>
+      <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:8px;display:flex;justify-content:space-between;"><span>Delivery</span><span id="cart-delivery-amount">৳100</span></div>
+      <div class="cart-total" style="border-top:1px solid var(--light-border);padding-top:10px;"><span>Total</span><strong id="cart-total-amount">৳0</strong></div>
       <button class="btn btn-primary btn-full" style="margin-top:1rem;" onclick="proceedToCheckout()">Proceed to Checkout</button>
     </div>
   </div>
@@ -1093,22 +1165,53 @@
     </div>
 
     <div id="checkout-step-3" style="display:none;">
-      <div class="payment-note">
-        <strong>Send Payment via bKash</strong>
-        <p>Please send the exact amount to:</p>
-        <div class="bkash-number">01725-805104</div>
-        <p style="margin-top:0.75rem;font-size:0.82rem;color:var(--mid);">After sending, enter the Transaction ID below to confirm your order.</p>
+      <!-- Summary row -->
+      <div style="background:var(--gold-pale);border:1px solid var(--light-border);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1.25rem;">
+        <div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:4px;">
+          <span style="color:var(--text-muted);">Subtotal</span><span id="checkout-subtotal-display">৳0</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:8px;">
+          <span style="color:var(--text-muted);">Delivery Charge</span><span id="checkout-delivery-display">৳100</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-family:'Cormorant Garamond',serif;font-size:1.2rem;border-top:1px solid var(--light-border);padding-top:8px;">
+          <span>Total</span><strong id="checkout-total-display">৳0</strong>
+        </div>
       </div>
 
-      <div class="cart-total" style="margin-bottom:1rem;">
-        <span style="font-size:0.85rem;color:var(--text-muted);">Order Total</span>
-        <strong id="checkout-total-display">৳0</strong>
-      </div>
-
+      <!-- Payment method selector -->
       <div class="form-group">
-        <label class="form-label">bKash Transaction ID *</label>
-        <input type="text" class="form-control" id="o-txid" placeholder="e.g. 8N6XXXXXXX">
-        <p class="hint-text">Found in your bKash SMS/app after sending</p>
+        <label class="form-label">Payment Method *</label>
+        <div id="payment-method-options" style="display:flex;gap:10px;flex-wrap:wrap;"></div>
+      </div>
+
+      <!-- bKash panel -->
+      <div id="panel-bkash" style="display:none;">
+        <div class="payment-note">
+          <strong>Send Payment via bKash</strong>
+          <p>Please send the exact amount to:</p>
+          <div class="bkash-number" id="display-bkash-number">—</div>
+          <div style="font-size:0.78rem;color:var(--mid);margin-top:4px;" id="display-bkash-type"></div>
+          <p style="margin-top:0.75rem;font-size:0.82rem;color:var(--mid);">After sending, enter the Transaction ID below.</p>
+        </div>
+        <div class="form-group">
+          <label class="form-label">bKash Transaction ID *</label>
+          <input type="text" class="form-control" id="o-txid" placeholder="e.g. 8N6XXXXXXX">
+          <p class="hint-text">Found in your bKash SMS/app after sending</p>
+        </div>
+      </div>
+
+      <!-- Bank panel -->
+      <div id="panel-bank" style="display:none;">
+        <div class="payment-note">
+          <strong>Bank Transfer</strong>
+          <p style="margin-bottom:0.75rem;font-size:0.82rem;">Transfer the exact amount to the account below, then enter your sender account number or transaction reference.</p>
+          <div id="display-bank-accounts"></div>
+        </div>
+        <div class="form-group" style="margin-top:1rem;">
+          <label class="form-label">Your Account No / Transaction Ref *</label>
+          <input type="text" class="form-control" id="o-bank-ref" placeholder="Sender account number or ref">
+          <p class="hint-text">We'll verify and confirm your payment</p>
+        </div>
       </div>
 
       <div style="display:flex;gap:10px;margin-top:1.5rem;">
@@ -1155,6 +1258,12 @@ let currentAdminOrders = [];
 let currentInventory = [];
 let editMode = false;
 let checkoutCustomer = {};
+let paymentSettings = {
+  bkash: { enabled: true, number: '01725-805104', type: 'Personal' },
+  bank: { enabled: false, accounts: [] },
+  deliveryCharge: 100
+};
+let selectedPaymentMethod = '';
 
 // ─── DISTRICTS DATA ───
 const districts = {
@@ -1383,7 +1492,10 @@ function renderCartModal() {
     </div>`;
   }).join('');
 
-  document.getElementById('cart-total-amount').textContent = formatCurrency(total);
+  const delivery = paymentSettings.deliveryCharge;
+  document.getElementById('cart-subtotal-amount').textContent = formatCurrency(total);
+  document.getElementById('cart-delivery-amount').textContent = formatCurrency(delivery);
+  document.getElementById('cart-total-amount').textContent = formatCurrency(total + delivery);
 }
 
 function removeCartItem(i) {
@@ -1421,8 +1533,14 @@ function goToPaymentStep() {
   }
 
   checkoutCustomer = { name, phone, division, district, road, house, address };
-  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
-  document.getElementById('checkout-total-display').textContent = formatCurrency(total);
+  const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const delivery = paymentSettings.deliveryCharge;
+  document.getElementById('checkout-subtotal-display').textContent = formatCurrency(subtotal);
+  document.getElementById('checkout-delivery-display').textContent = formatCurrency(delivery);
+  document.getElementById('checkout-total-display').textContent = formatCurrency(subtotal + delivery);
+
+  // Build payment method selector
+  buildPaymentMethodUI();
 
   document.getElementById('checkout-step-2').style.display = 'none';
   document.getElementById('checkout-step-3').style.display = '';
@@ -1438,11 +1556,19 @@ function backToDetailsStep() {
 }
 
 async function placeOrder() {
-  const txid = document.getElementById('o-txid').value.trim();
-  if (!txid) { toast('Please enter your bKash Transaction ID', 'error'); return; }
+  if (!selectedPaymentMethod) { toast('Please select a payment method', 'error'); return; }
+  let txid = '';
+  if (selectedPaymentMethod === 'bkash') {
+    txid = document.getElementById('o-txid').value.trim();
+    if (!txid) { toast('Please enter your bKash Transaction ID', 'error'); return; }
+  } else {
+    txid = document.getElementById('o-bank-ref').value.trim();
+    if (!txid) { toast('Please enter your account number or transaction reference', 'error'); return; }
+  }
 
   const orderNum = generateOrderNum();
-  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const total = subtotal + paymentSettings.deliveryCharge;
   const fullAddress = `${checkoutCustomer.house}, ${checkoutCustomer.road}, ${checkoutCustomer.district}, ${checkoutCustomer.division}. ${checkoutCustomer.address}`;
 
   const orderData = {
@@ -1452,7 +1578,7 @@ async function placeOrder() {
     address: fullAddress,
     items: cart,
     total_amount: total,
-    transaction_id: txid,
+    transaction_id: `[${selectedPaymentMethod.toUpperCase()}] ${txid}`,
     payment_status: 'unpaid',
     order_status: 'order received',
     created_at: new Date().toISOString()
@@ -1554,6 +1680,7 @@ function adminNav(section, btn) {
   if (section === 'orders') loadAdminOrders();
   if (section === 'overview') loadOverview();
   if (section === 'add-perfume') resetPerfumeForm();
+  if (section === 'payment-methods') { loadPaymentSettings(); }
 }
 
 function loadAdminContent() {
@@ -1703,6 +1830,7 @@ async function loadInventory() {
     const { data, error } = await query;
     if (error) throw error;
     currentInventory = data || [];
+    populateInventoryBrandFilter();
     renderInventory(currentInventory);
   } catch(e) {
     body.innerHTML = '<tr><td colspan="8">Error loading inventory</td></tr>';
@@ -1736,7 +1864,12 @@ function renderInventory(list) {
 }
 
 function searchInventory(q) {
-  const filtered = currentInventory.filter(p =>
+  const brand = document.getElementById('inv-brand-filter').value;
+  const season = document.getElementById('inv-season-filter').value;
+  let filtered = currentInventory;
+  if (season) filtered = filtered.filter(p => p.season === season);
+  if (brand) filtered = filtered.filter(p => p.brand === brand);
+  if (q) filtered = filtered.filter(p =>
     (p.name || '').toLowerCase().includes(q.toLowerCase()) ||
     (p.brand || '').toLowerCase().includes(q.toLowerCase())
   );
@@ -1789,29 +1922,65 @@ async function deletePerfume(id, name) {
 
 // ─── ADMIN ORDERS ───
 async function loadAdminOrders() {
-  const statusFilter = document.getElementById('orders-status-filter')?.value;
   const c = document.getElementById('admin-orders-list');
   c.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
-
   try {
-    let query = sb.from('orders').select('*').order('created_at', { ascending: false });
-    if (statusFilter) query = query.eq('order_status', statusFilter);
-    const { data, error } = await query;
+    const { data, error } = await sb.from('orders').select('*').order('created_at', { ascending: false });
     if (error) throw error;
     currentAdminOrders = data || [];
-    renderAdminOrders(currentAdminOrders);
+    applyOrderFilters();
   } catch(e) {
     c.innerHTML = '<div class="empty-state"><p>Error loading orders</p></div>';
   }
 }
 
-function searchAdminOrders(q) {
-  const filtered = currentAdminOrders.filter(o =>
-    (o.order_number || '').toLowerCase().includes(q.toLowerCase()) ||
-    (o.customer_name || '').toLowerCase().includes(q.toLowerCase()) ||
-    (o.phone || '').includes(q)
-  );
+function applyOrderFilters() {
+  const q = (document.getElementById('orders-search')?.value || '').toLowerCase();
+  const status = document.getElementById('orders-status-filter')?.value || '';
+  const dateFrom = document.getElementById('orders-date-from')?.value || '';
+  const dateTo = document.getElementById('orders-date-to')?.value || '';
+
+  let filtered = currentAdminOrders;
+
+  if (status) filtered = filtered.filter(o => o.order_status === status);
+
+  if (dateFrom) {
+    const from = new Date(dateFrom);
+    filtered = filtered.filter(o => new Date(o.created_at) >= from);
+  }
+  if (dateTo) {
+    const to = new Date(dateTo);
+    to.setHours(23, 59, 59, 999);
+    filtered = filtered.filter(o => new Date(o.created_at) <= to);
+  }
+  if (q) {
+    filtered = filtered.filter(o =>
+      (o.order_number || '').toLowerCase().includes(q) ||
+      (o.customer_name || '').toLowerCase().includes(q) ||
+      (o.phone || '').includes(q)
+    );
+  }
   renderAdminOrders(filtered);
+}
+
+function searchAdminOrders(q) { applyOrderFilters(); }
+
+function clearOrderFilters() {
+  document.getElementById('orders-search').value = '';
+  document.getElementById('orders-status-filter').value = '';
+  document.getElementById('orders-date-from').value = '';
+  document.getElementById('orders-date-to').value = '';
+  applyOrderFilters();
+}
+
+async function deleteOrder(orderId, orderNum) {
+  if (!confirm(`Permanently delete order #${orderNum}? This cannot be undone.`)) return;
+  const { error } = await sb.from('orders').delete().eq('id', orderId);
+  if (error) { toast('Error deleting order', 'error'); return; }
+  currentAdminOrders = currentAdminOrders.filter(o => o.id !== orderId);
+  applyOrderFilters();
+  loadOverview();
+  toast(`Order #${orderNum} deleted`, 'success');
 }
 
 function renderAdminOrders(list) {
@@ -1843,6 +2012,7 @@ function renderAdminOrders(list) {
             <option value="refunded" ${o.order_status === 'refunded' ? 'selected' : ''}>Refunded</option>
           </select>
           <strong>${formatCurrency(o.total_amount)}</strong>
+          <button class="btn btn-sm btn-danger" onclick="deleteOrder('${o.id}', '${o.order_number}')" title="Delete order">🗑</button>
         </div>
       </div>
       <table class="order-items-table">
@@ -1870,10 +2040,171 @@ async function updateOrderStatus(orderId, status) {
   loadOverview();
 }
 
+// ─── INVENTORY BRAND FILTER ───
+function filterInventoryBrand() {
+  const brand = document.getElementById('inv-brand-filter').value;
+  const season = document.getElementById('inv-season-filter').value;
+  let list = currentInventory;
+  if (season) list = list.filter(p => p.season === season);
+  if (brand) list = list.filter(p => p.brand === brand);
+  const q = document.getElementById('inv-search').value;
+  if (q) list = list.filter(p => (p.name||'').toLowerCase().includes(q.toLowerCase()) || (p.brand||'').toLowerCase().includes(q.toLowerCase()));
+  renderInventory(list);
+}
+
+function populateInventoryBrandFilter() {
+  const brands = [...new Set(currentInventory.map(p => p.brand))].sort();
+  const sel = document.getElementById('inv-brand-filter');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">All Brands</option>';
+  brands.forEach(b => { sel.innerHTML += `<option value="${b}" ${b===current?'selected':''}>${b}</option>`; });
+}
+
+// ─── PAYMENT SETTINGS ───
+async function loadPaymentSettings() {
+  try {
+    const { data } = await sb.from('settings').select('*').eq('key', 'payment').single();
+    if (data && data.value) {
+      paymentSettings = { ...paymentSettings, ...data.value };
+    }
+  } catch(e) { /* use defaults */ }
+  applyPaymentSettingsToForm();
+}
+
+function applyPaymentSettingsToForm() {
+  const el = id => document.getElementById(id);
+  if (el('pm-bkash-number')) el('pm-bkash-number').value = paymentSettings.bkash.number || '';
+  if (el('pm-bkash-type')) el('pm-bkash-type').value = paymentSettings.bkash.type || 'Personal';
+  if (el('pm-bkash-enabled')) el('pm-bkash-enabled').checked = paymentSettings.bkash.enabled !== false;
+  if (el('pm-bank-enabled')) el('pm-bank-enabled').checked = paymentSettings.bank.enabled === true;
+  if (el('pm-delivery-charge')) el('pm-delivery-charge').value = paymentSettings.deliveryCharge || 100;
+  renderBankAccountsAdmin();
+}
+
+function renderBankAccountsAdmin() {
+  const list = document.getElementById('bank-accounts-list');
+  if (!list) return;
+  const accounts = paymentSettings.bank.accounts || [];
+  list.innerHTML = accounts.map((a, i) => `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;margin-bottom:8px;align-items:end;">
+      <div>
+        <label class="form-label" style="font-size:0.65rem;">Bank Name</label>
+        <input type="text" class="form-control" value="${a.bank||''}" onchange="updateBankAccount(${i},'bank',this.value)" placeholder="e.g. Dutch-Bangla Bank">
+      </div>
+      <div>
+        <label class="form-label" style="font-size:0.65rem;">Account Name</label>
+        <input type="text" class="form-control" value="${a.name||''}" onchange="updateBankAccount(${i},'name',this.value)" placeholder="Account holder name">
+      </div>
+      <div>
+        <label class="form-label" style="font-size:0.65rem;">Account Number</label>
+        <input type="text" class="form-control" value="${a.number||''}" onchange="updateBankAccount(${i},'number',this.value)" placeholder="Account number">
+      </div>
+      <button class="btn btn-sm btn-danger" onclick="removeBankAccount(${i})" style="height:38px;">✕</button>
+    </div>`).join('');
+}
+
+function addBankAccountRow() {
+  if (!paymentSettings.bank.accounts) paymentSettings.bank.accounts = [];
+  paymentSettings.bank.accounts.push({ bank: '', name: '', number: '' });
+  renderBankAccountsAdmin();
+}
+
+function updateBankAccount(i, field, val) {
+  paymentSettings.bank.accounts[i][field] = val;
+}
+
+function removeBankAccount(i) {
+  paymentSettings.bank.accounts.splice(i, 1);
+  renderBankAccountsAdmin();
+}
+
+async function savePaymentSettings() {
+  const el = id => document.getElementById(id);
+  paymentSettings.bkash.number = el('pm-bkash-number').value.trim();
+  paymentSettings.bkash.type = el('pm-bkash-type').value;
+  paymentSettings.bkash.enabled = el('pm-bkash-enabled').checked;
+  paymentSettings.bank.enabled = el('pm-bank-enabled').checked;
+  paymentSettings.deliveryCharge = parseInt(el('pm-delivery-charge').value) || 0;
+
+  try {
+    const { error } = await sb.from('settings').upsert([{ key: 'payment', value: paymentSettings }], { onConflict: 'key' });
+    if (error) throw error;
+    toast('Payment settings saved!', 'success');
+  } catch(e) {
+    toast('Error saving: ' + e.message, 'error');
+  }
+}
+
+function buildPaymentMethodUI() {
+  selectedPaymentMethod = '';
+  document.getElementById('panel-bkash').style.display = 'none';
+  document.getElementById('panel-bank').style.display = 'none';
+
+  const opts = document.getElementById('payment-method-options');
+  opts.innerHTML = '';
+
+  if (paymentSettings.bkash.enabled) {
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-outline';
+    btn.style.cssText = 'display:flex;align-items:center;gap:8px;border-width:2px;';
+    btn.innerHTML = '<span style="color:#d0006f;font-weight:600;">bKash</span>';
+    btn.onclick = () => selectPaymentMethod('bkash', btn);
+    opts.appendChild(btn);
+  }
+
+  if (paymentSettings.bank.enabled && paymentSettings.bank.accounts && paymentSettings.bank.accounts.length) {
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-outline';
+    btn.style.cssText = 'display:flex;align-items:center;gap:8px;border-width:2px;';
+    btn.innerHTML = '<span style="color:var(--info);font-weight:600;">Bank Transfer</span>';
+    btn.onclick = () => selectPaymentMethod('bank', btn);
+    opts.appendChild(btn);
+  }
+
+  if (!opts.children.length) {
+    opts.innerHTML = '<p style="font-size:0.82rem;color:var(--text-muted);">No payment methods configured. Please contact us.</p>';
+  }
+}
+
+function selectPaymentMethod(method, btn) {
+  selectedPaymentMethod = method;
+  document.querySelectorAll('#payment-method-options .btn').forEach(b => {
+    b.style.background = '';
+    b.style.borderColor = '';
+  });
+  btn.style.background = 'var(--gold-pale)';
+  btn.style.borderColor = 'var(--gold)';
+
+  document.getElementById('panel-bkash').style.display = method === 'bkash' ? '' : 'none';
+  document.getElementById('panel-bank').style.display = method === 'bank' ? '' : 'none';
+
+  if (method === 'bkash') {
+    document.getElementById('display-bkash-number').textContent = paymentSettings.bkash.number || '—';
+    document.getElementById('display-bkash-type').textContent = paymentSettings.bkash.type || '';
+  }
+  if (method === 'bank') {
+    const accs = paymentSettings.bank.accounts || [];
+    document.getElementById('display-bank-accounts').innerHTML = accs.map(a => `
+      <div style="background:#fff;border:1px solid var(--light-border);border-radius:var(--radius);padding:10px 14px;margin-bottom:8px;">
+        <div style="font-size:0.75rem;color:var(--text-muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">${a.bank}</div>
+        <div style="font-weight:500;">${a.name}</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+          <span style="font-size:1rem;color:var(--dark);">${a.number}</span>
+          <button onclick="copyText('${a.number}')" class="btn btn-sm btn-outline" style="padding:3px 10px;font-size:0.65rem;">Copy</button>
+        </div>
+      </div>`).join('');
+  }
+}
+
+function copyText(txt) {
+  navigator.clipboard.writeText(txt).then(() => toast('Copied to clipboard!', 'success'));
+}
+
 // ─── INIT ───
 document.addEventListener('DOMContentLoaded', () => {
   saveCart();
   loadShop();
+  loadPaymentSettings();
   document.getElementById('overview-date').textContent = new Date().toLocaleDateString('en-BD', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
 });
 </script>
