@@ -1,392 +1,1881 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Breeze | Premium Decants</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        .admin-section, .order-tracking, .login-overlay { display: none; }
-        body.admin-mode .admin-section { display: block; }
-        body.admin-mode .shop-section, body.admin-mode .order-tracking { display: none; }
-        body.track-mode .order-tracking { display: block; }
-        body.track-mode .shop-section, body.track-mode .admin-section { display: none; }
-        .active-filter { text-decoration: underline; font-weight: 900; color: #000; }
-        #custom-cart { transform: translateX(100%); transition: 0.3s ease-in-out; z-index: 1000; }
-        #custom-cart.open { transform: translateX(0); }
-        .login-overlay.show { display: flex; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Breeze — Perfume Decants</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --gold: #b8935a;
+    --gold-light: #d4b483;
+    --gold-pale: #f5ede0;
+    --cream: #faf8f4;
+    --dark: #1a1611;
+    --dark-mid: #2d2620;
+    --mid: #6b5d4f;
+    --light-border: rgba(184,147,90,0.25);
+    --text-muted: #9c8b7a;
+    --success: #4a7c59;
+    --danger: #8b3a3a;
+    --warning: #8b6a1e;
+    --info: #2a5f8b;
+    --radius: 4px;
+    --radius-lg: 8px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Jost', sans-serif;
+    background: var(--cream);
+    color: var(--dark);
+    font-size: 15px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ─── TYPOGRAPHY ─── */
+  .serif { font-family: 'Cormorant Garamond', serif; }
+  h1, h2, h3, .logo { font-family: 'Cormorant Garamond', serif; }
+
+  /* ─── LAYOUT ─── */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ─── HEADER ─── */
+  header {
+    background: var(--dark);
+    color: #fff;
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 68px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 1px solid rgba(184,147,90,0.3);
+  }
+
+  .logo {
+    font-size: 2rem;
+    font-weight: 300;
+    letter-spacing: 0.15em;
+    color: var(--gold-light);
+    font-style: italic;
+  }
+
+  .logo span {
+    display: block;
+    font-family: 'Jost', sans-serif;
+    font-size: 0.45rem;
+    font-style: normal;
+    font-weight: 400;
+    letter-spacing: 0.5em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-top: -4px;
+  }
+
+  nav { display: flex; align-items: center; gap: 8px; }
+  nav a, nav button {
+    font-family: 'Jost', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 400;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.7);
+    text-decoration: none;
+    padding: 6px 14px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    border-radius: var(--radius);
+    transition: color 0.2s, background 0.2s;
+  }
+  nav a:hover, nav button:hover { color: var(--gold-light); background: rgba(184,147,90,0.1); }
+  nav a.active { color: var(--gold-light); }
+  nav .cart-btn {
+    background: rgba(184,147,90,0.15);
+    border: 1px solid rgba(184,147,90,0.4);
+    color: var(--gold-light);
+    position: relative;
+  }
+  nav .cart-btn:hover { background: rgba(184,147,90,0.25); }
+  .cart-count {
+    background: var(--gold);
+    color: var(--dark);
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 20px;
+    margin-left: 4px;
+  }
+
+  /* ─── MAIN ─── */
+  main { max-width: 1280px; margin: 0 auto; padding: 2rem; }
+  main.full { max-width: 100%; padding: 0; }
+
+  /* ─── HERO ─── */
+  .hero {
+    text-align: center;
+    padding: 5rem 2rem 4rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 1px;
+    height: 60px;
+    background: linear-gradient(to bottom, transparent, var(--gold-light));
+  }
+  .hero h1 {
+    font-size: clamp(2.5rem, 6vw, 5rem);
+    font-weight: 300;
+    font-style: italic;
+    color: var(--dark);
+    letter-spacing: 0.05em;
+    line-height: 1.1;
+    margin-bottom: 1rem;
+  }
+  .hero p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  /* ─── SEASON TABS ─── */
+  .season-bar {
+    display: flex;
+    gap: 8px;
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--light-border);
+    flex-wrap: wrap;
+    align-items: center;
+    background: var(--cream);
+    position: sticky;
+    top: 68px;
+    z-index: 50;
+  }
+
+  .season-tab {
+    font-family: 'Jost', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 400;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 6px 16px;
+    border: 1px solid var(--light-border);
+    background: transparent;
+    color: var(--mid);
+    cursor: pointer;
+    border-radius: 20px;
+    transition: all 0.2s;
+  }
+  .season-tab:hover { border-color: var(--gold); color: var(--gold); }
+  .season-tab.active {
+    background: var(--dark);
+    border-color: var(--dark);
+    color: var(--gold-light);
+  }
+
+  .search-wrapper {
+    margin-left: auto;
+    position: relative;
+  }
+  .search-wrapper input {
+    padding: 7px 14px 7px 36px;
+    border: 1px solid var(--light-border);
+    background: #fff;
+    border-radius: 20px;
+    font-family: 'Jost', sans-serif;
+    font-size: 0.82rem;
+    color: var(--dark);
+    width: 240px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .search-wrapper input:focus { border-color: var(--gold); }
+  .search-wrapper::before {
+    content: '⌕';
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    pointer-events: none;
+  }
+
+  /* ─── PRODUCT GRID ─── */
+  .products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 2px;
+    padding: 2px;
+  }
+
+  .product-card {
+    background: #fff;
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.3s;
+    overflow: hidden;
+  }
+  .product-card:hover { z-index: 2; transform: scale(1.015); box-shadow: 0 8px 40px rgba(0,0,0,0.12); }
+
+  .product-img {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    display: block;
+    background: var(--gold-pale);
+  }
+  .product-img-placeholder {
+    width: 100%;
+    aspect-ratio: 1;
+    background: var(--gold-pale);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 4rem;
+    color: var(--gold-light);
+    font-style: italic;
+  }
+
+  .product-info {
+    padding: 1rem 1.25rem 1.25rem;
+    border-top: 1px solid var(--light-border);
+  }
+  .product-brand {
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+  .product-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: var(--dark);
+    margin-bottom: 4px;
+    line-height: 1.2;
+  }
+  .product-notes {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .product-sizes {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+  }
+  .size-chip {
+    font-size: 0.7rem;
+    padding: 3px 8px;
+    border: 1px solid var(--light-border);
+    border-radius: 20px;
+    color: var(--mid);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .size-chip:hover, .size-chip.selected {
+    background: var(--dark);
+    border-color: var(--dark);
+    color: var(--gold-light);
+  }
+  .size-chip.discounted { border-color: var(--success); }
+
+  .add-cart-btn {
+    width: 100%;
+    padding: 9px;
+    background: var(--dark);
+    color: var(--gold-light);
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Jost', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 400;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s, opacity 0.2s;
+  }
+  .add-cart-btn:hover { background: var(--dark-mid); }
+  .add-cart-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .badge-out { position: absolute; top: 12px; right: 12px; background: rgba(26,22,17,0.85); color: var(--gold-light); font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; padding: 4px 10px; border-radius: 20px; }
+  .badge-discount { position: absolute; top: 12px; left: 12px; background: var(--success); color: #fff; font-size: 0.65rem; font-weight: 500; padding: 3px 8px; border-radius: 20px; }
+
+  /* ─── MODAL / OVERLAY ─── */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26,22,17,0.7);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+  }
+  .overlay.open { display: flex; }
+
+  .modal {
+    background: var(--cream);
+    border-radius: var(--radius-lg);
+    max-width: 560px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 2.5rem;
+    position: relative;
+  }
+  .modal-close {
+    position: absolute;
+    top: 1.25rem;
+    right: 1.25rem;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--mid);
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px 8px;
+  }
+  .modal-close:hover { color: var(--dark); }
+  .modal h2 { font-family: 'Cormorant Garamond', serif; font-size: 1.75rem; font-weight: 400; margin-bottom: 0.25rem; }
+  .modal .modal-sub { color: var(--text-muted); font-size: 0.78rem; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 2rem; }
+
+  /* ─── FORMS ─── */
+  .form-group { margin-bottom: 1.25rem; }
+  .form-label {
+    display: block;
+    font-size: 0.72rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--mid);
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+  .form-control {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--light-border);
+    border-radius: var(--radius);
+    font-family: 'Jost', sans-serif;
+    font-size: 0.9rem;
+    color: var(--dark);
+    background: #fff;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-control:focus { border-color: var(--gold); }
+  .form-control.error { border-color: var(--danger); }
+  select.form-control { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239c8b7a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px; }
+  textarea.form-control { resize: vertical; min-height: 80px; }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 11px 24px;
+    border-radius: var(--radius);
+    font-family: 'Jost', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 400;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+    text-decoration: none;
+  }
+  .btn-primary { background: var(--dark); color: var(--gold-light); border-color: var(--dark); }
+  .btn-primary:hover { background: var(--dark-mid); }
+  .btn-outline { background: transparent; color: var(--dark); border-color: var(--light-border); }
+  .btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+  .btn-danger { background: var(--danger); color: #fff; border-color: var(--danger); }
+  .btn-sm { padding: 6px 14px; font-size: 0.7rem; }
+  .btn-full { width: 100%; }
+
+  /* ─── CART ─── */
+  .cart-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--light-border);
+  }
+  .cart-item-info { flex: 1; }
+  .cart-item-name { font-family: 'Cormorant Garamond', serif; font-size: 1.1rem; font-weight: 500; }
+  .cart-item-sub { font-size: 0.78rem; color: var(--text-muted); }
+  .cart-item-price { font-weight: 500; color: var(--dark); white-space: nowrap; }
+  .cart-item-remove { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1rem; padding: 2px; }
+  .cart-item-remove:hover { color: var(--danger); }
+
+  .cart-total {
+    padding: 1.25rem 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.25rem;
+  }
+  .cart-total strong { font-weight: 500; }
+
+  /* ─── ORDER FORM ─── */
+  .payment-note {
+    background: var(--gold-pale);
+    border: 1px solid var(--light-border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.85rem;
+    line-height: 1.7;
+  }
+  .payment-note strong { font-family: 'Cormorant Garamond', serif; font-size: 1rem; display: block; margin-bottom: 0.5rem; }
+  .bkash-number { font-size: 1.2rem; font-weight: 600; color: #d0006f; letter-spacing: 0.05em; }
+
+  /* ─── ORDER TRACKING ─── */
+  .order-card {
+    background: #fff;
+    border: 1px solid var(--light-border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .order-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .order-number {
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+  .order-date { font-size: 0.82rem; color: var(--mid); }
+
+  .status-badge {
+    font-size: 0.68rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 20px;
+  }
+  .status-received { background: #e8f0fe; color: #1a56db; }
+  .status-dispatched { background: #fef3c7; color: #92400e; }
+  .status-completed { background: #d1fae5; color: #065f46; }
+  .status-canceled { background: #fee2e2; color: #991b1b; }
+  .status-refunded { background: #ede9fe; color: #6d28d9; }
+  .status-paid { background: #d1fae5; color: #065f46; }
+  .status-unpaid { background: #fee2e2; color: #991b1b; }
+
+  .order-items-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  .order-items-table th { text-align: left; color: var(--text-muted); font-weight: 400; font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; padding: 0 0 8px; border-bottom: 1px solid var(--light-border); }
+  .order-items-table td { padding: 8px 0; border-bottom: 1px solid rgba(184,147,90,0.1); }
+  .order-items-table tr:last-child td { border-bottom: none; }
+
+  /* ─── ADMIN ─── */
+  .admin-layout { display: grid; grid-template-columns: 220px 1fr; min-height: calc(100vh - 68px); }
+  .admin-sidebar {
+    background: var(--dark);
+    padding: 2rem 0;
+    border-right: 1px solid rgba(184,147,90,0.15);
+  }
+  .admin-sidebar-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.8rem;
+    font-weight: 300;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--gold);
+    padding: 0 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .admin-nav-item {
+    display: block;
+    padding: 10px 1.5rem;
+    font-size: 0.78rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.55);
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+    border-left: 2px solid transparent;
+    background: none;
+    border-top: none;
+    border-right: none;
+    border-bottom: none;
+    width: 100%;
+    text-align: left;
+    font-family: 'Jost', sans-serif;
+  }
+  .admin-nav-item:hover { color: rgba(255,255,255,0.85); border-left-color: rgba(184,147,90,0.4); }
+  .admin-nav-item.active { color: var(--gold-light); border-left-color: var(--gold); background: rgba(184,147,90,0.08); }
+
+  .admin-content { padding: 2rem; background: var(--cream); overflow-y: auto; }
+  .admin-section { display: none; }
+  .admin-section.active { display: block; }
+
+  .admin-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .admin-section-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.75rem;
+    font-weight: 400;
+    color: var(--dark);
+  }
+
+  /* ─── ADMIN FORM ─── */
+  .admin-card {
+    background: #fff;
+    border: 1px solid var(--light-border);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+  }
+  .admin-card-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--light-border);
+    color: var(--dark);
+  }
+
+  .sizes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+  }
+  .size-input-group {
+    border: 1px solid var(--light-border);
+    border-radius: var(--radius);
+    padding: 10px;
+    text-align: center;
+    background: var(--cream);
+  }
+  .size-input-group label { font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 6px; }
+  .size-input-group input { width: 100%; padding: 6px; border: 1px solid var(--light-border); border-radius: var(--radius); text-align: center; font-size: 0.85rem; background: #fff; outline: none; }
+  .size-input-group input:focus { border-color: var(--gold); }
+  .size-input-group input::placeholder { color: #ccc; }
+
+  /* ─── INVENTORY TABLE ─── */
+  .data-table { width: 100%; border-collapse: collapse; }
+  .data-table th { text-align: left; font-size: 0.7rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-muted); font-weight: 500; padding: 0 12px 12px 0; border-bottom: 2px solid var(--light-border); }
+  .data-table td { padding: 14px 12px 14px 0; border-bottom: 1px solid var(--light-border); vertical-align: middle; font-size: 0.88rem; }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: rgba(184,147,90,0.04); }
+
+  .table-img { width: 44px; height: 44px; object-fit: cover; border-radius: var(--radius); background: var(--gold-pale); }
+  .table-img-placeholder { width: 44px; height: 44px; border-radius: var(--radius); background: var(--gold-pale); display: flex; align-items: center; justify-content: center; color: var(--gold); font-size: 1.2rem; font-family: 'Cormorant Garamond', serif; font-style: italic; }
+
+  .table-actions { display: flex; gap: 6px; }
+
+  /* ─── SEARCH BAR ─── */
+  .admin-search {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 1.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .admin-search input {
+    flex: 1;
+    min-width: 200px;
+    padding: 9px 14px;
+    border: 1px solid var(--light-border);
+    border-radius: var(--radius);
+    font-family: 'Jost', sans-serif;
+    font-size: 0.88rem;
+    background: #fff;
+    outline: none;
+  }
+  .admin-search input:focus { border-color: var(--gold); }
+
+  /* ─── ORDER STATUS CONTROLS ─── */
+  .order-admin-card {
+    background: #fff;
+    border: 1px solid var(--light-border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .order-admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+  .order-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .order-controls select {
+    padding: 6px 10px;
+    border: 1px solid var(--light-border);
+    border-radius: var(--radius);
+    font-size: 0.8rem;
+    font-family: 'Jost', sans-serif;
+    background: #fff;
+    cursor: pointer;
+  }
+
+  /* ─── TOAST ─── */
+  .toast-container { position: fixed; bottom: 2rem; right: 2rem; z-index: 1000; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+  .toast {
+    background: var(--dark);
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: var(--radius);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    animation: slideIn 0.3s ease;
+    min-width: 240px;
+    pointer-events: all;
+    border-left: 3px solid var(--gold);
+  }
+  .toast.success { border-left-color: #4a7c59; }
+  .toast.error { border-left-color: var(--danger); }
+  @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+
+  /* ─── IMAGE UPLOAD ─── */
+  .image-upload-area {
+    border: 2px dashed var(--light-border);
+    border-radius: var(--radius);
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+  }
+  .image-upload-area:hover { border-color: var(--gold); background: var(--gold-pale); }
+  .image-upload-area input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .image-upload-area p { color: var(--text-muted); font-size: 0.85rem; margin-top: 0.5rem; }
+  .image-preview-wrap { margin-top: 1rem; position: relative; display: inline-block; }
+  .image-preview-wrap img { width: 120px; height: 120px; object-fit: cover; border-radius: var(--radius); border: 1px solid var(--light-border); }
+  .image-preview-wrap button { position: absolute; top: -8px; right: -8px; background: var(--danger); color: #fff; border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; }
+
+  /* ─── LOADING ─── */
+  .loading { text-align: center; padding: 4rem 2rem; color: var(--text-muted); }
+  .spinner { display: inline-block; width: 32px; height: 32px; border: 2px solid var(--light-border); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.7s linear infinite; margin-bottom: 1rem; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .empty-state { text-align: center; padding: 5rem 2rem; color: var(--text-muted); }
+  .empty-state .serif { font-size: 3rem; display: block; margin-bottom: 0.5rem; opacity: 0.3; }
+
+  /* ─── CHECKOUT STEPS ─── */
+  .checkout-steps { display: flex; gap: 8px; margin-bottom: 2rem; }
+  .checkout-step { flex: 1; text-align: center; font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); padding-bottom: 8px; border-bottom: 2px solid var(--light-border); transition: all 0.2s; }
+  .checkout-step.active { color: var(--gold); border-bottom-color: var(--gold); font-weight: 500; }
+  .checkout-step.done { color: var(--success); border-bottom-color: var(--success); }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 700px) {
+    main { padding: 1rem; }
+    .admin-layout { grid-template-columns: 1fr; }
+    .admin-sidebar { padding: 1rem 0; }
+    .form-row { grid-template-columns: 1fr; }
+    nav a { display: none; }
+    .hero h1 { font-size: 2.5rem; }
+    .search-wrapper input { width: 160px; }
+  }
+
+  /* ─── TOGGLE ─── */
+  .toggle-wrap { display: flex; align-items: center; gap: 12px; }
+  .toggle { position: relative; width: 40px; height: 22px; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider { position: absolute; inset: 0; background: #ccc; border-radius: 22px; cursor: pointer; transition: 0.2s; }
+  .toggle-slider::before { content: ''; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: 0.2s; }
+  .toggle input:checked + .toggle-slider { background: var(--dark); }
+  .toggle input:checked + .toggle-slider::before { transform: translateX(18px); }
+
+  /* ─── ADMIN LOGIN ─── */
+  .admin-login-wrap { min-height: calc(100vh - 68px); display: flex; align-items: center; justify-content: center; padding: 2rem; }
+  .admin-login-card { background: #fff; border: 1px solid var(--light-border); border-radius: var(--radius-lg); padding: 3rem; max-width: 400px; width: 100%; text-align: center; }
+  .admin-login-card h2 { font-family: 'Cormorant Garamond', serif; font-size: 2rem; font-weight: 400; font-style: italic; margin-bottom: 0.5rem; }
+  .admin-login-card p { color: var(--text-muted); font-size: 0.82rem; margin-bottom: 2rem; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--light-border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--gold-light); }
+
+  .hint-text { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+  .divider { border: none; border-top: 1px solid var(--light-border); margin: 1.5rem 0; }
+  .text-center { text-align: center; }
+  .mt-1 { margin-top: 1rem; }
+
+  /* brand filter pills */
+  .brand-bar { padding: 1rem 2rem; display: flex; gap: 8px; flex-wrap: wrap; border-bottom: 1px solid var(--light-border); background: #fff; }
+  .brand-pill { font-size: 0.72rem; padding: 4px 14px; border: 1px solid var(--light-border); border-radius: 20px; color: var(--mid); cursor: pointer; background: none; font-family: 'Jost', sans-serif; letter-spacing: 0.08em; transition: all 0.15s; }
+  .brand-pill:hover { border-color: var(--gold); color: var(--gold); }
+  .brand-pill.active { background: var(--dark); border-color: var(--dark); color: var(--gold-light); }
+
+  .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 2rem; }
+  .stat-card { background: #fff; border: 1px solid var(--light-border); border-radius: var(--radius-lg); padding: 1.25rem; }
+  .stat-card .stat-label { font-size: 0.7rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
+  .stat-card .stat-value { font-family: 'Cormorant Garamond', serif; font-size: 2rem; font-weight: 500; color: var(--dark); }
+  .stat-card .stat-sub { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+
+  /* track order */
+  .track-input-row { display: flex; gap: 12px; max-width: 480px; margin: 2rem auto; }
+  .track-input-row input { flex: 1; padding: 10px 14px; border: 1px solid var(--light-border); border-radius: var(--radius); font-family: 'Jost', sans-serif; font-size: 0.9rem; background: #fff; outline: none; }
+  .track-input-row input:focus { border-color: var(--gold); }
+</style>
 </head>
-<body class="bg-stone-50 text-stone-900">
+<body>
 
-    <!-- ADMIN LOGIN MODAL -->
-    <div id="login-modal" class="login-overlay">
-        <div class="bg-white p-8 rounded shadow-2xl w-80 text-center border-t-4 border-black">
-            <h2 class="font-serif italic text-2xl mb-2">Breeze Admin</h2>
-            <input type="text" id="adm-user" placeholder="Username" class="w-full border p-2 mb-2 text-sm outline-none">
-            <input type="password" id="adm-pass" placeholder="Password" class="w-full border p-2 mb-4 text-sm outline-none">
-            <button onclick="attemptLogin()" class="w-full bg-black text-white py-3 font-bold text-xs uppercase tracking-widest">Login</button>
-            <button onclick="closeLogin()" class="text-[10px] mt-4 uppercase underline text-stone-400 cursor-pointer block w-full">Back to Shop</button>
-        </div>
+<!-- ═══════════════════════════ HEADER ═══════════════════════════ -->
+<header>
+  <div class="logo">
+    Breeze
+    <span>Perfume Decants</span>
+  </div>
+  <nav>
+    <a href="#" onclick="showPage('shop')" id="nav-shop">Shop</a>
+    <a href="#" onclick="showPage('track')" id="nav-track">Track Order</a>
+    <button class="cart-btn" onclick="openCartModal()">
+      Cart <span class="cart-count" id="cart-count">0</span>
+    </button>
+    <button onclick="toggleAdmin()" id="admin-toggle-btn" style="color:var(--gold); font-size:0.7rem;">Admin ▾</button>
+  </nav>
+</header>
+
+<!-- ═══════════════════════════ SHOP PAGE ═══════════════════════════ -->
+<div id="page-shop" class="page active">
+  <div class="hero">
+    <h1>Find Your Signature<br>Scent</h1>
+    <p>Premium Decants — Explore Before You Commit</p>
+  </div>
+
+  <div class="season-bar">
+    <button class="season-tab active" onclick="filterSeason('all', this)">All</button>
+    <button class="season-tab" onclick="filterSeason('spring', this)">🌸 Spring</button>
+    <button class="season-tab" onclick="filterSeason('summer', this)">☀️ Summer</button>
+    <button class="season-tab" onclick="filterSeason('winter', this)">❄️ Winter</button>
+    <div class="search-wrapper">
+      <input type="text" id="shop-search" placeholder="Search name, brand, notes…" oninput="doSearch(this.value)">
+    </div>
+  </div>
+
+  <div class="brand-bar" id="brand-bar">
+    <button class="brand-pill active" onclick="filterBrand('all', this)">All Brands</button>
+  </div>
+
+  <div id="products-container" style="padding:0 2px 2rem;">
+    <div class="loading"><div class="spinner"></div><br>Loading collection…</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ TRACK ORDER PAGE ═══════════════════════════ -->
+<div id="page-track" class="page">
+  <main>
+    <div style="text-align:center;padding:3rem 0 1rem;">
+      <h2 class="serif" style="font-size:2.5rem;font-weight:300;font-style:italic;">Track My Order</h2>
+      <p style="color:var(--text-muted);font-size:0.85rem;margin-top:0.5rem;">Enter your phone number to view your orders</p>
     </div>
 
-    <!-- HEADER -->
-    <header class="bg-white p-4 border-b sticky top-0 z-50 flex justify-between items-center shadow-sm">
-        <h1 class="text-2xl font-serif italic cursor-pointer" onclick="resetShop()">Breeze.</h1>
-        <div class="flex gap-2">
-            <button onclick="showSection('track')" class="text-[9px] bg-white px-2 py-2 uppercase font-bold border rounded">Track Order</button>
-            <button onclick="openLogin()" class="text-[9px] bg-stone-100 px-2 py-2 uppercase font-bold border rounded">Admin</button>
-            <button onclick="toggleCart()" class="bg-black text-white px-3 py-2 text-[9px] uppercase font-bold shop-section rounded">Bag (<span id="cart-count">0</span>)</button>
-        </div>
-    </header>
+    <div class="track-input-row">
+      <input type="text" id="track-phone" placeholder="Your phone number (01XXXXXXXXX)" maxlength="11">
+      <button class="btn btn-primary" onclick="trackOrders()">Find Orders</button>
+    </div>
 
-    <!-- SHOP FRONT -->
-    <main class="shop-section max-w-[1600px] mx-auto p-4">
-        <div class="mb-6 space-y-4 text-center">
-            <input type="text" id="globalSearch" oninput="handleSearch()" placeholder="Search names or brands..." class="w-full max-w-2xl mx-auto block p-4 border rounded-full text-xs outline-none shadow-sm focus:ring-1 ring-black">
-            
-            <div class="flex gap-4 text-[10px] uppercase font-bold border-b pb-2 overflow-x-auto justify-center scrollbar-hide">
-                <button onclick="setSeason('all')" class="active-filter filter-link" id="f-all">All Seasons</button>
-                <button onclick="setSeason('Summer')" class="filter-link" id="f-Summer">Summer</button>
-                <button onclick="setSeason('Winter')" class="filter-link" id="f-Winter">Winter</button>
-                <button onclick="setSeason('Spring')" class="filter-link" id="f-Spring">Spring</button>
-                <button onclick="setSeason('Autumn')" class="filter-link" id="f-Autumn">Autumn</button>
-            </div>
+    <div id="track-results" style="max-width:760px;margin:0 auto;"></div>
+  </main>
+</div>
+
+<!-- ═══════════════════════════ ADMIN PAGE ═══════════════════════════ -->
+<div id="page-admin" class="page">
+  <!-- Admin Login -->
+  <div id="admin-login-view">
+    <div class="admin-login-wrap">
+      <div class="admin-login-card">
+        <h2>Admin Access</h2>
+        <p>Sign in to manage Breeze inventory and orders</p>
+        <div class="form-group">
+          <input type="password" class="form-control" id="admin-password" placeholder="Enter password" onkeydown="if(event.key==='Enter')adminLogin()">
+        </div>
+        <button class="btn btn-primary btn-full" onclick="adminLogin()">Enter Dashboard</button>
+        <p class="hint-text mt-1">Default: breeze2024 (change in config)</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Dashboard -->
+  <div id="admin-dashboard-view" style="display:none;">
+    <div class="admin-layout">
+      <aside class="admin-sidebar">
+        <div class="admin-sidebar-title">Dashboard</div>
+        <button class="admin-nav-item active" onclick="adminNav('overview', this)">Overview</button>
+        <button class="admin-nav-item" onclick="adminNav('add-perfume', this)">Add Perfume</button>
+        <button class="admin-nav-item" onclick="adminNav('inventory', this)">Inventory</button>
+        <button class="admin-nav-item" onclick="adminNav('orders', this)">Orders</button>
+        <hr style="border:none;border-top:1px solid rgba(184,147,90,0.15);margin:1rem 1.5rem;">
+        <button class="admin-nav-item" onclick="adminLogout()" style="color:rgba(255,100,100,0.7);">Sign Out</button>
+      </aside>
+
+      <div class="admin-content">
+
+        <!-- Overview -->
+        <div class="admin-section active" id="section-overview">
+          <div class="admin-section-header">
+            <h2 class="admin-section-title">Overview</h2>
+            <span style="font-size:0.8rem;color:var(--text-muted);" id="overview-date"></span>
+          </div>
+          <div class="stats-row" id="stats-row">
+            <div class="stat-card"><div class="stat-label">Total Perfumes</div><div class="stat-value" id="stat-perfumes">—</div></div>
+            <div class="stat-card"><div class="stat-label">Total Orders</div><div class="stat-value" id="stat-orders">—</div></div>
+            <div class="stat-card"><div class="stat-label">Pending</div><div class="stat-value" id="stat-pending">—</div></div>
+            <div class="stat-card"><div class="stat-label">Revenue (৳)</div><div class="stat-value" id="stat-revenue">—</div></div>
+          </div>
+          <div class="admin-card">
+            <div class="admin-card-title">Recent Orders</div>
+            <div id="recent-orders-list"><div class="loading"><div class="spinner"></div></div></div>
+          </div>
         </div>
 
-        <div class="flex flex-col md:flex-row gap-8">
-            <aside class="hidden md:block w-48 shrink-0">
-                <h3 class="text-[10px] uppercase font-black mb-4 border-b pb-2 tracking-widest text-stone-400">Brands</h3>
-                <ul class="text-[11px] space-y-3 uppercase text-stone-500" id="brand-menu"></ul>
-            </aside>
-            <div id="shop-grid" class="flex-1 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6"></div>
-        </div>
-    </main>
+        <!-- Add Perfume -->
+        <div class="admin-section" id="section-add-perfume">
+          <div class="admin-section-header">
+            <h2 class="admin-section-title" id="perfume-form-title">Add New Perfume</h2>
+          </div>
+          <form id="perfume-form" onsubmit="savePerfume(event)">
+            <input type="hidden" id="edit-perfume-id">
+            <div class="admin-card">
+              <div class="admin-card-title">Basic Information</div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Perfume Name *</label>
+                  <input type="text" class="form-control" id="p-name" required placeholder="e.g. Black Orchid">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Brand *</label>
+                  <input type="text" class="form-control" id="p-brand" required placeholder="e.g. Tom Ford">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Notes</label>
+                <input type="text" class="form-control" id="p-notes" placeholder="e.g. Black truffle, Bergamot, Jasmine, Patchouli">
+                <p class="hint-text">Separate notes with commas</p>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Season *</label>
+                  <select class="form-control" id="p-season" required>
+                    <option value="">Select season</option>
+                    <option value="spring">Spring</option>
+                    <option value="summer">Summer</option>
+                    <option value="winter">Winter</option>
+                    <option value="all">All seasons</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Discount (%)</label>
+                  <input type="number" class="form-control" id="p-discount" placeholder="0" min="0" max="100" value="0">
+                </div>
+              </div>
+              <div class="form-group">
+                <div class="toggle-wrap">
+                  <label class="toggle">
+                    <input type="checkbox" id="p-stockout">
+                    <span class="toggle-slider"></span>
+                  </label>
+                  <span style="font-size:0.85rem;color:var(--mid);">Mark as Out of Stock</span>
+                </div>
+              </div>
+            </div>
 
-    <!-- BAG / CHECKOUT -->
-    <div id="custom-cart" class="fixed right-0 top-0 h-full w-full sm:w-[450px] bg-white shadow-2xl p-6 flex flex-col overflow-y-auto">
-        <div class="flex justify-between items-center border-b pb-4 mb-4">
-            <h2 class="font-bold uppercase text-xs tracking-widest">Your Bag</h2>
-            <button onclick="toggleCart()" class="text-xs uppercase font-bold text-stone-400">✕ Close</button>
+            <div class="admin-card">
+              <div class="admin-card-title">Sizes & Prices (leave empty if not available)</div>
+              <div class="sizes-grid">
+                <div class="size-input-group"><label>1 ml</label><input type="number" id="price-1" placeholder="—" min="0"></div>
+                <div class="size-input-group"><label>3 ml</label><input type="number" id="price-3" placeholder="—" min="0"></div>
+                <div class="size-input-group"><label>5 ml</label><input type="number" id="price-5" placeholder="—" min="0"></div>
+                <div class="size-input-group"><label>10 ml</label><input type="number" id="price-10" placeholder="—" min="0"></div>
+                <div class="size-input-group"><label>15 ml</label><input type="number" id="price-15" placeholder="—" min="0"></div>
+                <div class="size-input-group"><label>30 ml</label><input type="number" id="price-30" placeholder="—" min="0"></div>
+                <div class="size-input-group"><label>50 ml</label><input type="number" id="price-50" placeholder="—" min="0"></div>
+              </div>
+            </div>
+
+            <div class="admin-card">
+              <div class="admin-card-title">Product Image</div>
+              <div class="image-upload-area" id="upload-area">
+                <input type="file" id="image-file" accept="image/*" onchange="handleImageSelect(event)">
+                <div style="font-size:2.5rem;color:var(--gold-light);">📷</div>
+                <p>Click to upload image</p>
+                <p style="font-size:0.72rem;">JPG, PNG, WEBP — Max 5MB</p>
+              </div>
+              <div id="image-preview-container"></div>
+              <input type="hidden" id="p-image-url">
+            </div>
+
+            <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:1rem;">
+              <button type="button" class="btn btn-outline" onclick="resetPerfumeForm()">Reset</button>
+              <button type="submit" class="btn btn-primary" id="perfume-submit-btn">Add Perfume</button>
+            </div>
+          </form>
         </div>
-        
-        <div id="cart-items" class="space-y-4 mb-6"></div>
-        
-        <div class="space-y-3 border-t pt-4 text-xs">
-            <p class="text-[9px] uppercase font-bold text-stone-400">Delivery Information</p>
-            <input type="text" id="c-name" placeholder="Full Name *" class="w-full border p-2 outline-none">
-            <input type="tel" id="c-phone" placeholder="Phone Number (11 Digits) *" class="w-full border p-2 outline-none">
-            
-            <div class="grid grid-cols-2 gap-2">
-                <select id="c-div" class="border p-2 bg-white"><option value="">Select Division *</option></select>
-                <select id="c-dist" class="border p-2 bg-white"><option value="">Select District *</option></select>
-            </div>
-            
-            <div class="grid grid-cols-2 gap-2">
-                <input type="text" id="c-road" placeholder="Road Name/No *" class="w-full border p-2 outline-none">
-                <input type="text" id="c-house" placeholder="House/Flat No *" class="w-full border p-2 outline-none">
-            </div>
-            
-            <textarea id="c-details" placeholder="Additional Delivery Details (Optional)" class="w-full border p-2 h-16 outline-none"></textarea>
-            
-            <p class="text-[9px] uppercase font-bold text-stone-400 mt-4">Payment (Send Money to 01725805104)</p>
-            <select id="c-pay" class="w-full border p-2 bg-white">
-                <option value="">Select Payment Method *</option>
-                <option value="bkash">bKash</option>
-                <option value="nagad">Nagad</option>
+
+        <!-- Inventory -->
+        <div class="admin-section" id="section-inventory">
+          <div class="admin-section-header">
+            <h2 class="admin-section-title">Inventory</h2>
+          </div>
+          <div class="admin-search">
+            <input type="text" placeholder="Search inventory…" oninput="searchInventory(this.value)" id="inv-search">
+            <select id="inv-season-filter" onchange="loadInventory()" style="padding:9px 14px;border:1px solid var(--light-border);border-radius:var(--radius);font-family:'Jost',sans-serif;font-size:0.85rem;background:#fff;outline:none;">
+              <option value="">All Seasons</option>
+              <option value="spring">Spring</option>
+              <option value="summer">Summer</option>
+              <option value="winter">Winter</option>
+              <option value="all">All Seasons</option>
             </select>
-            <input type="text" id="c-trx" placeholder="Transaction ID *" class="w-full border p-2 uppercase outline-none">
-
-            <div class="border-t pt-4 space-y-1">
-                <div class="flex justify-between"><span>Subtotal:</span><span>৳<span id="sub-total">0</span></span></div>
-                <div class="flex justify-between"><span>Delivery:</span><span>৳100</span></div>
-                <div class="flex justify-between font-bold text-lg"><span>Total:</span><span>৳<span id="grand-total">0</span></span></div>
-            </div>
-            
-            <button onclick="placeOrder()" class="w-full bg-black text-white py-4 text-[10px] uppercase font-bold tracking-widest hover:bg-stone-800">Place Order</button>
+          </div>
+          <div class="admin-card" style="overflow-x:auto;">
+            <table class="data-table" id="inventory-table">
+              <thead>
+                <tr>
+                  <th style="width:50px;"></th>
+                  <th>Name</th>
+                  <th>Brand</th>
+                  <th>Season</th>
+                  <th>Sizes</th>
+                  <th>Discount</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="inventory-body">
+                <tr><td colspan="8"><div class="loading"><div class="spinner"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
+
+        <!-- Orders -->
+        <div class="admin-section" id="section-orders">
+          <div class="admin-section-header">
+            <h2 class="admin-section-title">Orders</h2>
+          </div>
+          <div class="admin-search">
+            <input type="text" placeholder="Search by order #, name, phone…" oninput="searchAdminOrders(this.value)" id="orders-search">
+            <select id="orders-status-filter" onchange="loadAdminOrders()" style="padding:9px 14px;border:1px solid var(--light-border);border-radius:var(--radius);font-family:'Jost',sans-serif;font-size:0.85rem;background:#fff;outline:none;">
+              <option value="">All Statuses</option>
+              <option value="order received">Order Received</option>
+              <option value="dispatched">Dispatched</option>
+              <option value="completed">Completed</option>
+              <option value="canceled">Canceled</option>
+              <option value="refunded">Refunded</option>
+            </select>
+          </div>
+          <div id="admin-orders-list"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ MODALS ═══════════════════════════ -->
+
+<!-- Cart Modal -->
+<div class="overlay" id="cart-overlay" onclick="closeCartIfOutside(event)">
+  <div class="modal" style="max-width:500px;">
+    <button class="modal-close" onclick="closeModal('cart-overlay')">✕</button>
+    <h2>Your Cart</h2>
+    <div class="modal-sub">Selected Decants</div>
+    <div id="cart-items-list"></div>
+    <div id="cart-empty" style="display:none;">
+      <div class="empty-state"><span class="serif">∅</span><p>Your cart is empty</p></div>
+    </div>
+    <div id="cart-footer" style="display:none;">
+      <div class="cart-total"><span>Total</span><strong id="cart-total-amount">৳0</strong></div>
+      <button class="btn btn-primary btn-full" style="margin-top:1rem;" onclick="proceedToCheckout()">Proceed to Checkout</button>
+    </div>
+  </div>
+</div>
+
+<!-- Checkout Modal -->
+<div class="overlay" id="checkout-overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('checkout-overlay')">✕</button>
+    <h2>Checkout</h2>
+    <div class="modal-sub">Place Your Order</div>
+
+    <div class="checkout-steps">
+      <div class="checkout-step done" id="step-1-indicator">1. Cart</div>
+      <div class="checkout-step active" id="step-2-indicator">2. Details</div>
+      <div class="checkout-step" id="step-3-indicator">3. Payment</div>
     </div>
 
-    <!-- TRACKING SECTION -->
-    <main class="order-tracking max-w-3xl mx-auto p-6">
-        <h2 class="text-xl font-bold mb-6 uppercase text-center tracking-widest">Order History</h2>
-        <div id="customer-order-list" class="space-y-4"></div>
-    </main>
-
-    <!-- ADMIN PANEL -->
-    <main class="admin-section max-w-[1600px] mx-auto p-6">
-        <div class="flex justify-between items-center mb-8 border-b pb-4">
-            <h2 class="text-2xl font-black uppercase text-blue-600">Admin Control</h2>
-            <button onclick="location.reload()" class="bg-red-500 text-white px-4 py-2 text-[10px] font-bold uppercase rounded">Logout</button>
+    <div id="checkout-step-2">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Full Name *</label>
+          <input type="text" class="form-control" id="o-name" placeholder="Your name">
         </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div class="bg-white p-6 border shadow-sm h-fit sticky top-24">
-                <h3 class="font-black uppercase text-xs mb-4">Manage Inventory</h3>
-                <form id="pForm" class="space-y-3 text-[11px]">
-                    <input type="text" id="name" placeholder="Perfume Name" class="w-full border p-2" required>
-                    <input type="text" id="brand" placeholder="Brand" class="w-full border p-2" required>
-                    <textarea id="notes" placeholder="Notes" class="w-full border p-2 h-12"></textarea>
-                    <select id="season" class="w-full border p-2 bg-white">
-                        <option>Summer</option><option>Winter</option><option>Spring</option><option>Autumn</option><option>All</option>
-                    </select>
-                    <div class="grid grid-cols-3 gap-1">
-                        <input type="number" id="p1" placeholder="1ml Price"><input type="number" id="p3" placeholder="3ml Price"><input type="number" id="p5" placeholder="5ml Price">
-                        <input type="number" id="p10" placeholder="10ml Price"><input type="number" id="p15" placeholder="15ml Price"><input type="number" id="p30" placeholder="30ml Price">
-                    </div>
-                    <input type="file" id="fileIn" class="w-full border p-1">
-                    <input type="hidden" id="imgUrl">
-                    <button type="submit" class="w-full bg-black text-white py-3 font-bold uppercase mt-2">Save Product</button>
-                </form>
-                <div class="mt-8 border-t pt-4">
-                    <input type="text" id="inventorySearch" oninput="renderAdminProducts()" placeholder="Search Inventory..." class="w-full border p-2 text-[10px] mb-2">
-                    <div id="admin-product-list" class="space-y-1 h-48 overflow-y-auto scrollbar-hide"></div>
-                </div>
-            </div>
-
-            <div class="lg:col-span-2">
-                <h3 class="font-black uppercase text-xs mb-4 underline">Live Orders & Management</h3>
-                <div id="admin-order-list" class="space-y-4"></div>
-            </div>
+        <div class="form-group">
+          <label class="form-label">Phone Number *</label>
+          <input type="tel" class="form-control" id="o-phone" placeholder="01XXXXXXXXX" maxlength="11">
         </div>
-    </main>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Division *</label>
+          <select class="form-control" id="o-division" onchange="populateDistricts()">
+            <option value="">Select Division</option>
+            <option>Barisal</option><option>Chittagong</option><option>Dhaka</option>
+            <option>Khulna</option><option>Mymensingh</option><option>Rajshahi</option>
+            <option>Rangpur</option><option>Sylhet</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">District *</label>
+          <select class="form-control" id="o-district">
+            <option value="">Select District</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Road / Area *</label>
+          <input type="text" class="form-control" id="o-road" placeholder="Road name / area">
+        </div>
+        <div class="form-group">
+          <label class="form-label">House / Flat No *</label>
+          <input type="text" class="form-control" id="o-house" placeholder="House/flat number">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Detailed Address *</label>
+        <textarea class="form-control" id="o-address" placeholder="Full delivery address…"></textarea>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="goToPaymentStep()">Continue to Payment</button>
+    </div>
 
-    <script>
-        const SUPABASE_URL = 'https://pcxwmgjsbvlyyedhjujc.supabase.co'; 
-        const SUPABASE_KEY = 'sb_publishable_UaeY_Kqvy5EZsDoL3nmuDQ_SW_0HrwS';
-        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    <div id="checkout-step-3" style="display:none;">
+      <div class="payment-note">
+        <strong>Send Payment via bKash</strong>
+        <p>Please send the exact amount to:</p>
+        <div class="bkash-number">01725-805104</div>
+        <p style="margin-top:0.75rem;font-size:0.82rem;color:var(--mid);">After sending, enter the Transaction ID below to confirm your order.</p>
+      </div>
 
-        const divs = ["Dhaka", "Chattogram", "Rajshahi", "Khulna", "Barishal", "Sylhet", "Rangpur", "Mymensingh"];
-        const dists = ["Dhaka", "Gazipur", "Narayanganj", "Cumilla", "Feni", "Sylhet", "Bogura", "Chattogram", "Noakhali"];
+      <div class="cart-total" style="margin-bottom:1rem;">
+        <span style="font-size:0.85rem;color:var(--text-muted);">Order Total</span>
+        <strong id="checkout-total-display">৳0</strong>
+      </div>
 
-        let inventory = []; let orders = []; let filteredItems = []; let cart = [];
+      <div class="form-group">
+        <label class="form-label">bKash Transaction ID *</label>
+        <input type="text" class="form-control" id="o-txid" placeholder="e.g. 8N6XXXXXXX">
+        <p class="hint-text">Found in your bKash SMS/app after sending</p>
+      </div>
 
-        async function loadData() {
-            const { data: pData } = await _supabase.from('perfumes').select('*');
-            const { data: oData } = await _supabase.from('orders').select('*').order('created_at', { ascending: false });
-            inventory = pData || []; orders = oData || []; filteredItems = inventory;
-            renderShop(); renderAdmin(); renderBrandMenu();
-        }
+      <div style="display:flex;gap:10px;margin-top:1.5rem;">
+        <button class="btn btn-outline" onclick="backToDetailsStep()">← Back</button>
+        <button class="btn btn-primary" style="flex:1;" onclick="placeOrder()">Confirm Order</button>
+      </div>
+    </div>
 
-        function renderShop(items = filteredItems) {
-            document.getElementById('shop-grid').innerHTML = items.map(p => {
-                const sz = Object.entries(p.prices || {}).filter(([k,v]) => v && v > 0);
-                return `
-                <div class="bg-white border p-2 shadow-sm rounded">
-                    <img src="${p.img}" class="w-full h-40 object-cover bg-stone-50 mb-2 rounded">
-                    <p class="text-[8px] uppercase text-stone-400 font-black">${p.brand}</p>
-                    <h2 class="font-bold text-[11px] truncate">${p.name}</h2>
-                    <select id="size-${p.id}" class="text-[10px] border mb-2 w-full p-1 bg-white">
-                        ${sz.map(([ml, pr]) => `<option value="${pr}">${ml.replace('p','')}ml - ৳${pr}</option>`).join('')}
-                    </select>
-                    <button onclick="addToCart('${p.id}')" class="w-full bg-black text-white py-2 text-[9px] font-black uppercase">Add to Bag</button>
-                </div>`;
-            }).join('');
-        }
+    <div id="checkout-success" style="display:none;text-align:center;padding:2rem 0;">
+      <div style="font-size:3rem;margin-bottom:1rem;">✓</div>
+      <h3 class="serif" style="font-size:1.75rem;font-weight:400;margin-bottom:0.5rem;">Order Placed!</h3>
+      <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:0.5rem;">Your order has been received and is being processed.</p>
+      <p style="font-size:0.82rem;color:var(--mid);">Order #: <strong id="success-order-num"></strong></p>
+      <div style="margin-top:1.5rem;display:flex;gap:10px;justify-content:center;">
+        <button class="btn btn-outline btn-sm" onclick="closeModal('checkout-overlay');showPage('track')">Track Order</button>
+        <button class="btn btn-primary btn-sm" onclick="closeModal('checkout-overlay')">Continue Shopping</button>
+      </div>
+    </div>
+  </div>
+</div>
 
-        function addToCart(id) {
-            const p = inventory.find(x => x.id === id); 
-            const sel = document.getElementById(`size-${id}`);
-            const sizeLabel = sel.options[sel.selectedIndex].text.split(' - ')[0];
-            const price = parseFloat(sel.value);
-            const existing = cart.find(i => i.id === id && i.size === sizeLabel);
-            if(existing) { existing.qty++; } else { cart.push({ id, name: p.name, size: sizeLabel, price: price, qty: 1, img: p.img }); }
-            updateCartUI();
-            if(!document.getElementById('custom-cart').classList.contains('open')) toggleCart();
-        }
+<!-- Toast Container -->
+<div class="toast-container" id="toasts"></div>
 
-        function changeQty(index, delta) {
-            cart[index].qty += delta;
-            if(cart[index].qty < 1) cart.splice(index, 1);
-            updateCartUI();
-        }
+<!-- ═══════════════════════════ SUPABASE CONFIG ═══════════════════════════ -->
+<script>
+// ─── CONFIGURATION ───
+const SUPABASE_URL = 'https://etylviumkybnniuwlqef.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_3OJfO0st3T1znLbtuE_rmA_IPjdpQ71';
+const IMAGEBB_API_KEY = '73d04afd891df63c360b510165eb42f4';
+const ADMIN_PASSWORD = 'adminb';
 
-        function updateCartUI() {
-            document.getElementById('cart-count').innerText = cart.reduce((a, b) => a + b.qty, 0);
-            let sub = cart.reduce((a, b) => a + (b.price * b.qty), 0);
-            document.getElementById('cart-items').innerHTML = cart.map((item, i) => `
-                <div class="flex justify-between items-center text-[10px] border-b pb-2">
-                    <div class="flex gap-2 items-center">
-                        <img src="${item.img}" class="w-10 h-10 object-cover rounded">
-                        <div><p class="font-bold">${item.name}</p><p class="text-stone-400">${item.size}</p></div>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <button onclick="changeQty(${i}, -1)" class="px-2 border bg-stone-50">-</button>
-                        <span>${item.qty}</span>
-                        <button onclick="changeQty(${i}, 1)" class="px-2 border bg-stone-50">+</button>
-                    </div>
-                </div>`).join('');
-            document.getElementById('sub-total').innerText = sub;
-            document.getElementById('grand-total').innerText = cart.length > 0 ? sub + 100 : 0;
-        }
+// ─── INIT ───
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        async function placeOrder() {
-            const name = document.getElementById('c-name').value;
-            const phone = document.getElementById('c-phone').value;
-            const div = document.getElementById('c-div').value;
-            const dist = document.getElementById('c-dist').value;
-            const trx = document.getElementById('c-trx').value;
-            const pay = document.getElementById('c-pay').value;
+// ─── STATE ───
+let cart = JSON.parse(localStorage.getItem('breeze_cart') || '[]');
+let allPerfumes = [];
+let currentSeason = 'all';
+let currentBrand = 'all';
+let currentSearch = '';
+let currentAdminOrders = [];
+let currentInventory = [];
+let editMode = false;
+let checkoutCustomer = {};
 
-            if(!name || phone.length !== 11 || !div || !dist || !trx || cart.length === 0) return alert("Fill all * fields and add 1 item!");
+// ─── DISTRICTS DATA ───
+const districts = {
+  Barisal: ['Barguna','Barisal','Bhola','Jhalokati','Patuakhali','Pirojpur'],
+  Chittagong: ['Bandarban','Brahmanbaria','Chandpur','Chittagong','Comilla','Cox\'s Bazar','Feni','Khagrachhari','Lakshmipur','Noakhali','Rangamati'],
+  Dhaka: ['Dhaka','Faridpur','Gazipur','Gopalganj','Kishoreganj','Madaripur','Manikganj','Munshiganj','Narayanganj','Narsingdi','Rajbari','Shariatpur','Tangail'],
+  Khulna: ['Bagerhat','Chuadanga','Jessore','Jhenaidah','Khulna','Kushtia','Magura','Meherpur','Narail','Satkhira'],
+  Mymensingh: ['Jamalpur','Mymensingh','Netrokona','Sherpur'],
+  Rajshahi: ['Bogra','Joypurhat','Naogaon','Natore','Chapainawabganj','Pabna','Rajshahi','Sirajganj'],
+  Rangpur: ['Dinajpur','Gaibandha','Kurigram','Lalmonirhat','Nilphamari','Panchagarh','Rangpur','Thakurgaon'],
+  Sylhet: ['Habiganj','Moulvibazar','Sunamganj','Sylhet']
+};
 
-            const oid = `BRZ-${Date.now().toString().slice(-6)}`;
-            const address = `House: ${document.getElementById('c-house').value}, Road: ${document.getElementById('c-road').value}, ${dist}, ${div}`;
-            
-            const o = {
-                orderID: oid, customer: name, phone: phone, address: address,
-                items: [...cart], total: parseFloat(document.getElementById('grand-total').innerText),
-                status: 'Order Received', orderDate: new Date().toLocaleString(),
-                isPaid: false, isRefunded: false, adminNote: `Payment: ${pay} | Trx: ${trx}`
-            };
+// ═══════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+  const navEl = document.getElementById('nav-' + id);
+  if (navEl) navEl.classList.add('active');
+  if (id === 'shop') loadShop();
+  if (id === 'track') { document.getElementById('track-results').innerHTML = ''; }
+  if (id === 'admin') loadAdminContent();
+}
 
-            const { error } = await _supabase.from('orders').insert([o]);
-            if(!error) { alert("Order Placed: " + oid); cart = []; updateCartUI(); toggleCart(); loadData(); showSection('track'); }
-        }
+function toast(msg, type = 'info') {
+  const c = document.getElementById('toasts');
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
 
-        // --- ADMIN ORDER VIEW (WITH ITEM DETAILS, PAID, REFUNDED, NOTES) ---
-        function renderAdmin() {
-            renderAdminProducts();
-            document.getElementById('admin-order-list').innerHTML = orders.map(o => {
-                // Formatting the items list
-                const itemDetails = o.items.map(i => `${i.name} (${i.size}) x${i.qty}`).join(', ');
-                
-                return `
-                <div class="bg-white p-4 border text-[10px] shadow-sm rounded-lg space-y-3">
-                    <div class="flex justify-between border-b pb-2 font-black">
-                        <span class="text-blue-600">ORDER ID: ${o.orderID}</span>
-                        <span>${o.orderDate}</span>
-                    </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-1">
-                            <p><b>Items:</b> <span class="text-stone-600">${itemDetails}</span></p>
-                            <p><b>Amount:</b> <span class="font-bold">৳${o.total}</span></p>
-                            <p><b>Customer:</b> ${o.customer} | ${o.phone}</p>
-                            <p><b>Address:</b> ${o.address}</p>
-                            <p class="text-blue-800 bg-blue-50 p-1 inline-block mt-1 uppercase font-bold">${o.adminNote || 'No Payment Note'}</p>
-                        </div>
-                        
-                        <div class="flex flex-col gap-2 border-l pl-4">
-                            <p class="uppercase font-bold text-stone-400 text-[8px]">Order Management</p>
-                            <select onchange="updateOrder('${o.orderID}', {status: this.value})" class="border p-1 font-bold bg-stone-50">
-                                <option ${o.status==='Order Received'?'selected':''}>Order Received</option>
-                                <option ${o.status==='Dispatched'?'selected':''}>Dispatched</option>
-                                <option ${o.status==='Complete'?'selected':''}>Complete</option>
-                                <option ${o.status==='Cancelled'?'selected':''}>Cancelled</option>
-                                <option ${o.status==='Refunded'?'selected':''}>Refunded</option>
-                            </select>
-                            
-                            <div class="flex items-center gap-4 py-1">
-                                <label class="flex items-center gap-1 cursor-pointer">
-                                    <input type="checkbox" ${o.isPaid?'checked':''} onchange="updateOrder('${o.orderID}', {isPaid: this.checked})"> 
-                                    <span class="${o.isPaid?'text-green-600 font-bold':'text-stone-400'}">PAID</span>
-                                </label>
-                                <label class="flex items-center gap-1 cursor-pointer">
-                                    <input type="checkbox" ${o.isRefunded?'checked':''} onchange="updateOrder('${o.orderID}', {isRefunded: this.checked})"> 
-                                    <span class="${o.isRefunded?'text-red-600 font-bold':'text-stone-400'}">REFUNDED</span>
-                                </label>
-                            </div>
-                            
-                            <input type="text" placeholder="Internal Note (e.g. Broken Cap)" value="${o.shortNote || ''}" 
-                                onblur="updateOrder('${o.orderID}', {shortNote: this.value})" class="border p-1 text-[9px] outline-none italic">
-                        </div>
-                    </div>
-                    <button onclick="deleteOrder('${o.orderID}')" class="text-red-300 text-[8px] uppercase hover:text-red-600">Delete Permanently</button>
-                </div>`;
-            }).join('');
-        }
+function formatCurrency(n) { return '৳' + Math.round(n).toLocaleString(); }
 
-        // --- CUSTOMER TRACKING VIEW (ITEM DETAILS & STATUS) ---
-       function renderCustomerOrders() {
-        document.getElementById('customer-order-list').innerHTML = orders.map(o => `
-            <div class="bg-white p-4 border text-[11px] rounded shadow-sm space-y-2">
-                <div class="flex justify-between items-start font-bold">
-                    <div>
-                        <p class="text-[12px]">ID: ${o.orderID}</p>
-                        <p class="text-stone-400 font-normal text-[10px]">${o.orderDate}</p>
-                    </div>
-                    <span class="text-blue-600 uppercase font-black tracking-tight">${o.status}</span>
-                </div>
-                
-                <div class="border-t pt-2 mt-2">
-                    <p class="text-[9px] uppercase text-stone-400 font-bold mb-1">Order Details</p>
-                    <div class="space-y-1">
-                        ${o.items.map(i => `
-                            <div class="flex justify-between text-stone-700">
-                                <span>${i.name} <span class="text-stone-400">(${i.size})</span></span>
-                                <span>qty: ${i.qty}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
+function generateOrderNum() {
+  return 'BRZ-' + Date.now().toString(36).toUpperCase();
+}
 
-                <div class="flex justify-between items-center border-t pt-2 mt-2 font-bold text-stone-900">
-                    <div class="flex flex-col">
-                        <span class="text-[10px] font-normal text-stone-500">Payment: ${o.isPaid ? '✅ Verified' : '⏳ Pending'}</span>
-                        ${o.isRefunded ? '<span class="text-red-500 text-[10px]">Status: Refund Processed</span>' : ''}
-                    </div>
-                    <div class="text-right">
-                        <p class="text-[9px] uppercase font-normal text-stone-400">Total Amount</p>
-                        <p class="text-lg">৳${o.total}</p>
-                    </div>
-                </div>
-            </div>`).join('');
+function getStatusClass(s) {
+  const map = { 'order received': 'received', dispatched: 'dispatched', completed: 'completed', canceled: 'canceled', refunded: 'refunded', paid: 'paid', unpaid: 'unpaid' };
+  return 'status-' + (map[s] || 'received');
+}
+
+function statusLabel(s) {
+  const map = { 'order received': 'Order Received', dispatched: 'Dispatched', completed: 'Completed', canceled: 'Canceled', refunded: 'Refunded' };
+  return map[s] || s;
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function closeCartIfOutside(e) {
+  if (e.target.id === 'cart-overlay') closeModal('cart-overlay');
+}
+
+function populateDistricts() {
+  const div = document.getElementById('o-division').value;
+  const sel = document.getElementById('o-district');
+  sel.innerHTML = '<option value="">Select District</option>';
+  if (districts[div]) {
+    districts[div].forEach(d => {
+      sel.innerHTML += `<option>${d}</option>`;
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// SHOP — LOAD & FILTER
+// ═══════════════════════════════════════════════════
+async function loadShop() {
+  try {
+    const { data, error } = await sb.from('perfumes').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    allPerfumes = data || [];
+    buildBrandBar();
+    renderProducts();
+  } catch (e) {
+    document.getElementById('products-container').innerHTML = '<div class="empty-state"><span class="serif">!</span><p>Could not load products. Check Supabase config.</p></div>';
+  }
+}
+
+function buildBrandBar() {
+  const brands = [...new Set(allPerfumes.map(p => p.brand))].sort();
+  const bar = document.getElementById('brand-bar');
+  bar.innerHTML = '<button class="brand-pill active" onclick="filterBrand(\'all\', this)">All Brands</button>';
+  brands.forEach(b => {
+    bar.innerHTML += `<button class="brand-pill" onclick="filterBrand('${b}', this)">${b}</button>`;
+  });
+}
+
+function filterSeason(s, btn) {
+  currentSeason = s;
+  document.querySelectorAll('.season-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  renderProducts();
+}
+
+function filterBrand(b, btn) {
+  currentBrand = b;
+  document.querySelectorAll('.brand-pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  renderProducts();
+}
+
+function doSearch(q) {
+  currentSearch = q.toLowerCase();
+  renderProducts();
+}
+
+function renderProducts() {
+  let list = allPerfumes;
+  if (currentSeason !== 'all') list = list.filter(p => p.season === currentSeason || p.season === 'all');
+  if (currentBrand !== 'all') list = list.filter(p => p.brand === currentBrand);
+  if (currentSearch) {
+    list = list.filter(p =>
+      (p.name || '').toLowerCase().includes(currentSearch) ||
+      (p.brand || '').toLowerCase().includes(currentSearch) ||
+      (p.notes || '').toLowerCase().includes(currentSearch) ||
+      (p.season || '').toLowerCase().includes(currentSearch)
+    );
+  }
+
+  const c = document.getElementById('products-container');
+  if (!list.length) { c.innerHTML = '<div class="empty-state"><span class="serif">~</span><p>No perfumes match your search</p></div>'; return; }
+
+  c.innerHTML = '<div class="products-grid">' + list.map(p => productCard(p)).join('') + '</div>';
+}
+
+function productCard(p) {
+  const sizes = p.sizes || {};
+  const discount = p.discount || 0;
+  const sizeKeys = [1, 3, 5, 10, 15, 30, 50].filter(s => sizes[s] != null && sizes[s] !== '');
+
+  const sizesHtml = sizeKeys.map(s => {
+    const price = sizes[s];
+    const discPrice = discount > 0 ? Math.round(price * (1 - discount / 100)) : price;
+    return `<span class="size-chip${discount > 0 ? ' discounted' : ''}" data-pid="${p.id}" data-size="${s}" data-price="${discPrice}" onclick="selectSize(this, event)">${s}ml — ${formatCurrency(discPrice)}</span>`;
+  }).join('');
+
+  const imgHtml = p.image_url
+    ? `<img class="product-img" src="${p.image_url}" alt="${p.name}" loading="lazy">`
+    : `<div class="product-img-placeholder">${p.brand[0]}</div>`;
+
+  return `
+    <div class="product-card">
+      ${p.stock_out ? '<div class="badge-out">Out of Stock</div>' : ''}
+      ${p.discount > 0 ? `<div class="badge-discount">${p.discount}% Off</div>` : ''}
+      ${imgHtml}
+      <div class="product-info">
+        <div class="product-brand">${p.brand}</div>
+        <div class="product-name">${p.name}</div>
+        <div class="product-notes">${p.notes || 'A captivating fragrance'}</div>
+        <div class="product-sizes" id="sizes-${p.id}">${sizesHtml}</div>
+        <button class="add-cart-btn" id="cart-btn-${p.id}" ${p.stock_out ? 'disabled' : ''} onclick="addToCart('${p.id}')">
+          ${p.stock_out ? 'Out of Stock' : 'Add to Cart'}
+        </button>
+      </div>
+    </div>`;
+}
+
+function selectSize(el, e) {
+  e.stopPropagation();
+  const pid = el.dataset.pid;
+  document.querySelectorAll(`#sizes-${pid} .size-chip`).forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// ═══════════════════════════════════════════════════
+// CART
+// ═══════════════════════════════════════════════════
+function addToCart(pid) {
+  const perfume = allPerfumes.find(p => p.id === pid);
+  if (!perfume) return;
+  const selectedChip = document.querySelector(`#sizes-${pid} .size-chip.selected`);
+  if (!selectedChip) { toast('Please select a size first', 'error'); return; }
+
+  const size = parseInt(selectedChip.dataset.size);
+  const price = parseInt(selectedChip.dataset.price);
+
+  const existing = cart.find(c => c.pid === pid && c.size === size);
+  if (existing) { existing.qty++; } else {
+    cart.push({ pid, size, price, name: perfume.name, brand: perfume.brand, qty: 1 });
+  }
+  saveCart();
+  toast(`${perfume.name} (${size}ml) added to cart ✓`, 'success');
+}
+
+function saveCart() {
+  localStorage.setItem('breeze_cart', JSON.stringify(cart));
+  document.getElementById('cart-count').textContent = cart.reduce((s, i) => s + i.qty, 0);
+}
+
+function openCartModal() {
+  renderCartModal();
+  document.getElementById('cart-overlay').classList.add('open');
+}
+
+function renderCartModal() {
+  const list = document.getElementById('cart-items-list');
+  const empty = document.getElementById('cart-empty');
+  const footer = document.getElementById('cart-footer');
+
+  if (!cart.length) {
+    list.innerHTML = '';
+    empty.style.display = '';
+    footer.style.display = 'none';
+    return;
+  }
+
+  empty.style.display = 'none';
+  footer.style.display = '';
+  let total = 0;
+
+  list.innerHTML = cart.map((item, i) => {
+    total += item.price * item.qty;
+    return `<div class="cart-item">
+      <div class="cart-item-info">
+        <div class="cart-item-name">${item.name}</div>
+        <div class="cart-item-sub">${item.brand} · ${item.size}ml · Qty: ${item.qty}</div>
+      </div>
+      <div class="cart-item-price">${formatCurrency(item.price * item.qty)}</div>
+      <button class="cart-item-remove" onclick="removeCartItem(${i})">✕</button>
+    </div>`;
+  }).join('');
+
+  document.getElementById('cart-total-amount').textContent = formatCurrency(total);
+}
+
+function removeCartItem(i) {
+  cart.splice(i, 1);
+  saveCart();
+  renderCartModal();
+}
+
+function proceedToCheckout() {
+  if (!cart.length) return;
+  closeModal('cart-overlay');
+  // Reset checkout
+  document.getElementById('checkout-step-2').style.display = '';
+  document.getElementById('checkout-step-3').style.display = 'none';
+  document.getElementById('checkout-success').style.display = 'none';
+  document.getElementById('step-2-indicator').className = 'checkout-step active';
+  document.getElementById('step-3-indicator').className = 'checkout-step';
+  document.getElementById('checkout-overlay').classList.add('open');
+}
+
+function goToPaymentStep() {
+  const name = document.getElementById('o-name').value.trim();
+  const phone = document.getElementById('o-phone').value.trim();
+  const division = document.getElementById('o-division').value;
+  const district = document.getElementById('o-district').value;
+  const road = document.getElementById('o-road').value.trim();
+  const house = document.getElementById('o-house').value.trim();
+  const address = document.getElementById('o-address').value.trim();
+
+  if (!name || !phone || !division || !district || !road || !house || !address) {
+    toast('Please fill in all fields', 'error'); return;
+  }
+  if (!/^01\d{9}$/.test(phone)) {
+    toast('Enter a valid 11-digit Bangladeshi phone number', 'error'); return;
+  }
+
+  checkoutCustomer = { name, phone, division, district, road, house, address };
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  document.getElementById('checkout-total-display').textContent = formatCurrency(total);
+
+  document.getElementById('checkout-step-2').style.display = 'none';
+  document.getElementById('checkout-step-3').style.display = '';
+  document.getElementById('step-2-indicator').className = 'checkout-step done';
+  document.getElementById('step-3-indicator').className = 'checkout-step active';
+}
+
+function backToDetailsStep() {
+  document.getElementById('checkout-step-2').style.display = '';
+  document.getElementById('checkout-step-3').style.display = 'none';
+  document.getElementById('step-2-indicator').className = 'checkout-step active';
+  document.getElementById('step-3-indicator').className = 'checkout-step';
+}
+
+async function placeOrder() {
+  const txid = document.getElementById('o-txid').value.trim();
+  if (!txid) { toast('Please enter your bKash Transaction ID', 'error'); return; }
+
+  const orderNum = generateOrderNum();
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const fullAddress = `${checkoutCustomer.house}, ${checkoutCustomer.road}, ${checkoutCustomer.district}, ${checkoutCustomer.division}. ${checkoutCustomer.address}`;
+
+  const orderData = {
+    order_number: orderNum,
+    customer_name: checkoutCustomer.name,
+    phone: checkoutCustomer.phone,
+    address: fullAddress,
+    items: cart,
+    total_amount: total,
+    transaction_id: txid,
+    payment_status: 'unpaid',
+    order_status: 'order received',
+    created_at: new Date().toISOString()
+  };
+
+  try {
+    const { error } = await sb.from('orders').insert([orderData]);
+    if (error) throw error;
+
+    cart = [];
+    saveCart();
+    document.getElementById('success-order-num').textContent = orderNum;
+    document.getElementById('checkout-step-3').style.display = 'none';
+    document.getElementById('checkout-success').style.display = '';
+    document.getElementById('step-3-indicator').className = 'checkout-step done';
+    toast('Order placed successfully!', 'success');
+  } catch (e) {
+    toast('Failed to place order. Please try again.', 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// TRACK ORDER
+// ═══════════════════════════════════════════════════
+async function trackOrders() {
+  const phone = document.getElementById('track-phone').value.trim();
+  if (!/^01\d{9}$/.test(phone)) { toast('Enter a valid 11-digit phone number', 'error'); return; }
+
+  const c = document.getElementById('track-results');
+  c.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+  try {
+    const { data, error } = await sb.from('orders').select('*').eq('phone', phone).order('created_at', { ascending: false });
+    if (error) throw error;
+
+    if (!data.length) { c.innerHTML = '<div class="empty-state"><span class="serif">~</span><p>No orders found for this phone number</p></div>'; return; }
+
+    c.innerHTML = data.map(o => {
+      const date = new Date(o.created_at);
+      const items = (o.items || []).map(i => `<tr><td>${i.name} (${i.brand})</td><td>${i.size}ml</td><td>${i.qty}</td><td>${formatCurrency(i.price * i.qty)}</td></tr>`).join('');
+      return `<div class="order-card">
+        <div class="order-card-header">
+          <div>
+            <div class="order-number">Order #${o.order_number}</div>
+            <div class="order-date">${date.toLocaleDateString('en-BD', {weekday:'short',year:'numeric',month:'long',day:'numeric'})} · ${date.toLocaleTimeString('en-BD', {hour:'2-digit',minute:'2-digit'})}</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <span class="status-badge ${getStatusClass(o.payment_status)}">${o.payment_status || 'unpaid'}</span>
+            <span class="status-badge ${getStatusClass(o.order_status)}">${statusLabel(o.order_status)}</span>
+          </div>
+        </div>
+        <table class="order-items-table">
+          <thead><tr><th>Item</th><th>Size</th><th>Qty</th><th>Amount</th></tr></thead>
+          <tbody>${items}</tbody>
+        </table>
+        <div style="margin-top:1rem;padding-top:0.75rem;border-top:1px solid var(--light-border);display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:0.78rem;color:var(--text-muted);">TxID: ${o.transaction_id || '—'}</span>
+          <strong>${formatCurrency(o.total_amount)}</strong>
+        </div>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    c.innerHTML = '<div class="empty-state"><p>Error loading orders. Please try again.</p></div>';
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// ADMIN
+// ═══════════════════════════════════════════════════
+function toggleAdmin() {
+  showPage('admin');
+}
+
+function adminLogin() {
+  const pwd = document.getElementById('admin-password').value;
+  if (pwd === ADMIN_PASSWORD) {
+    document.getElementById('admin-login-view').style.display = 'none';
+    document.getElementById('admin-dashboard-view').style.display = '';
+    loadAdminContent();
+  } else {
+    toast('Incorrect password', 'error');
+  }
+}
+
+function adminLogout() {
+  document.getElementById('admin-login-view').style.display = '';
+  document.getElementById('admin-dashboard-view').style.display = 'none';
+  document.getElementById('admin-password').value = '';
+  showPage('shop');
+}
+
+function adminNav(section, btn) {
+  document.querySelectorAll('.admin-nav-item').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+  document.getElementById('section-' + section).classList.add('active');
+
+  if (section === 'inventory') loadInventory();
+  if (section === 'orders') loadAdminOrders();
+  if (section === 'overview') loadOverview();
+  if (section === 'add-perfume') resetPerfumeForm();
+}
+
+function loadAdminContent() {
+  loadOverview();
+  document.getElementById('overview-date').textContent = new Date().toLocaleDateString('en-BD', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+}
+
+async function loadOverview() {
+  try {
+    const [{ count: perfCount }, { count: ordCount }, { data: ordData }] = await Promise.all([
+      sb.from('perfumes').select('*', { count: 'exact', head: true }),
+      sb.from('orders').select('*', { count: 'exact', head: true }),
+      sb.from('orders').select('*').order('created_at', { ascending: false }).limit(5)
+    ]);
+
+    const { count: pendCount } = await sb.from('orders').select('*', { count: 'exact', head: true }).eq('order_status', 'order received');
+    const { data: allOrds } = await sb.from('orders').select('total_amount');
+    const revenue = (allOrds || []).reduce((s, o) => s + (o.total_amount || 0), 0);
+
+    document.getElementById('stat-perfumes').textContent = perfCount || 0;
+    document.getElementById('stat-orders').textContent = ordCount || 0;
+    document.getElementById('stat-pending').textContent = pendCount || 0;
+    document.getElementById('stat-revenue').textContent = formatCurrency(revenue);
+
+    const recent = document.getElementById('recent-orders-list');
+    if (!ordData || !ordData.length) { recent.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;">No orders yet</p>'; return; }
+
+    recent.innerHTML = ordData.map(o => {
+      const date = new Date(o.created_at).toLocaleDateString('en-BD');
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--light-border);">
+        <div>
+          <div style="font-weight:500;font-size:0.88rem;">${o.customer_name} <span style="font-size:0.75rem;color:var(--text-muted);">#${o.order_number}</span></div>
+          <div style="font-size:0.78rem;color:var(--text-muted);">${date} · ${o.phone}</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span class="status-badge ${getStatusClass(o.order_status)}">${statusLabel(o.order_status)}</span>
+          <strong style="font-size:0.88rem;">${formatCurrency(o.total_amount)}</strong>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+// ─── PERFUME FORM ───
+function resetPerfumeForm() {
+  editMode = false;
+  document.getElementById('edit-perfume-id').value = '';
+  document.getElementById('perfume-form').reset();
+  document.getElementById('p-image-url').value = '';
+  document.getElementById('image-preview-container').innerHTML = '';
+  document.getElementById('perfume-form-title').textContent = 'Add New Perfume';
+  document.getElementById('perfume-submit-btn').textContent = 'Add Perfume';
+}
+
+function handleImageSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const preview = document.getElementById('image-preview-container');
+  const reader = new FileReader();
+  reader.onload = () => {
+    preview.innerHTML = `<div class="image-preview-wrap">
+      <img src="${reader.result}" alt="preview">
+      <button type="button" onclick="clearImage()">✕</button>
+    </div>`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearImage() {
+  document.getElementById('image-file').value = '';
+  document.getElementById('p-image-url').value = '';
+  document.getElementById('image-preview-container').innerHTML = '';
+}
+
+async function uploadToImageBB(file) {
+  const formData = new FormData();
+  formData.append('image', file);
+  const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMAGEBB_API_KEY}`, { method: 'POST', body: formData });
+  const data = await res.json();
+  if (!data.success) throw new Error('Image upload failed');
+  return data.data.url;
+}
+
+async function savePerfume(e) {
+  e.preventDefault();
+  const btn = document.getElementById('perfume-submit-btn');
+  btn.textContent = 'Saving…';
+  btn.disabled = true;
+
+  try {
+    let imageUrl = document.getElementById('p-image-url').value;
+    const imageFile = document.getElementById('image-file').files[0];
+
+    if (imageFile) {
+      imageUrl = await uploadToImageBB(imageFile);
     }
 
-        // Inventory Management Logic (Unchanged)
-        function handleSearch() {
-            const q = document.getElementById('globalSearch').value.toLowerCase();
-            filteredItems = inventory.filter(p => p.name.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q));
-            renderShop();
-        }
-        function setSeason(s) {
-            document.querySelectorAll('.filter-link').forEach(l => l.classList.remove('active-filter'));
-            document.getElementById(`f-${s}`).classList.add('active-filter');
-            filteredItems = s === 'all' ? inventory : inventory.filter(p => p.season === s);
-            renderShop();
-        }
-        function renderBrandMenu() {
-            const brands = [...new Set(inventory.map(p => p.brand))].sort();
-            document.getElementById('brand-menu').innerHTML = brands.map(b => `<li onclick="filterByBrand('${b}')" class="cursor-pointer hover:text-black">${b}</li>`).join('');
-        }
-        function filterByBrand(b) { filteredItems = inventory.filter(p => p.brand === b); renderShop(); }
-        function renderAdminProducts() {
-            const q = document.getElementById('inventorySearch')?.value.toLowerCase() || '';
-            const filtered = inventory.filter(p => p.name.toLowerCase().includes(q));
-            document.getElementById('admin-product-list').innerHTML = filtered.map(p => `<div class="flex justify-between bg-stone-50 p-2 border mb-1 text-[9px]"><span>${p.name}</span><button onclick="deleteProduct('${p.id}')" class="text-red-500 font-bold">DEL</button></div>`).join('');
-        }
-        async function updateOrder(oid, obj) { await _supabase.from('orders').update(obj).eq('orderID', oid); loadData(); }
-        async function deleteOrder(oid) { if(confirm("Delete?")) { await _supabase.from('orders').delete().eq('orderID', oid); loadData(); } }
-        async function deleteProduct(id) { if(confirm("Delete?")) { await _supabase.from('perfumes').delete().eq('id', id); loadData(); } }
-        document.getElementById('pForm').onsubmit = async (e) => {
-            e.preventDefault();
-            const p = { id: "P-"+Date.now(), name: document.getElementById('name').value, brand: document.getElementById('brand').value, notes: document.getElementById('notes').value, season: document.getElementById('season').value, img: document.getElementById('imgUrl').value || 'https://via.placeholder.com/200', prices: { '1ml': document.getElementById('p1').value, '3ml': document.getElementById('p3').value, '5ml': document.getElementById('p5').value, '10ml': document.getElementById('p10').value, '15ml': document.getElementById('p15').value, '30ml': document.getElementById('p30').value } };
-            await _supabase.from('perfumes').insert([p]); loadData(); e.target.reset();
-        };
-        document.getElementById('fileIn').onchange = async (e) => {
-            const fd = new FormData(); fd.append('image', e.target.files[0]);
-            const res = await fetch('https://api.imgbb.com/1/upload?key=73d04afd891df63c360b510165eb42f4', { method: 'POST', body: fd });
-            const d = await res.json(); document.getElementById('imgUrl').value = d.data.url; alert("Image Ready");
-        };
+    const sizes = {};
+    [1, 3, 5, 10, 15, 30, 50].forEach(s => {
+      const val = document.getElementById(`price-${s}`).value;
+      if (val !== '') sizes[s] = parseInt(val);
+    });
 
-        // NAVIGATION
-        function showSection(sec) {
-            document.body.classList.remove('admin-mode', 'track-mode');
-            if(sec === 'admin') document.body.classList.add('admin-mode');
-            if(sec === 'track') { document.body.classList.add('track-mode'); renderCustomerOrders(); }
-        }
-        function attemptLogin() { if(document.getElementById('adm-user').value==='admin'&&document.getElementById('adm-pass').value==='ad123min'){showSection('admin');closeLogin();} else alert("Denied");}
-        function openLogin() { document.getElementById('login-modal').classList.add('show'); }
-        function closeLogin() { document.getElementById('login-modal').classList.remove('show'); }
-        function resetShop() { showSection('shop'); filteredItems = inventory; renderShop(); }
-        function toggleCart() { document.getElementById('custom-cart').classList.toggle('open'); }
+    const payload = {
+      name: document.getElementById('p-name').value.trim(),
+      brand: document.getElementById('p-brand').value.trim(),
+      notes: document.getElementById('p-notes').value.trim(),
+      season: document.getElementById('p-season').value,
+      discount: parseInt(document.getElementById('p-discount').value) || 0,
+      stock_out: document.getElementById('p-stockout').checked,
+      sizes,
+      image_url: imageUrl || null
+    };
 
-        divs.forEach(d => document.getElementById('c-div').add(new Option(d, d)));
-        dists.forEach(d => document.getElementById('c-dist').add(new Option(d, d)));
-        window.onload = loadData;
-    </script>
+    const id = document.getElementById('edit-perfume-id').value;
+    let error;
+    if (id) {
+      ({ error } = await sb.from('perfumes').update(payload).eq('id', id));
+    } else {
+      ({ error } = await sb.from('perfumes').insert([payload]));
+    }
+    if (error) throw error;
+
+    toast(id ? 'Perfume updated!' : 'Perfume added to collection!', 'success');
+    resetPerfumeForm();
+    loadInventory();
+  } catch (err) {
+    toast('Error saving perfume: ' + err.message, 'error');
+  } finally {
+    btn.textContent = editMode ? 'Update Perfume' : 'Add Perfume';
+    btn.disabled = false;
+  }
+}
+
+// ─── INVENTORY ───
+async function loadInventory() {
+  currentInventory = [];
+  const seasonFilter = document.getElementById('inv-season-filter')?.value;
+  const body = document.getElementById('inventory-body');
+  body.innerHTML = '<tr><td colspan="8"><div class="loading"><div class="spinner"></div></div></td></tr>';
+
+  try {
+    let query = sb.from('perfumes').select('*').order('created_at', { ascending: false });
+    if (seasonFilter) query = query.eq('season', seasonFilter);
+    const { data, error } = await query;
+    if (error) throw error;
+    currentInventory = data || [];
+    renderInventory(currentInventory);
+  } catch(e) {
+    body.innerHTML = '<tr><td colspan="8">Error loading inventory</td></tr>';
+  }
+}
+
+function renderInventory(list) {
+  const body = document.getElementById('inventory-body');
+  if (!list.length) { body.innerHTML = '<tr><td colspan="8"><div class="empty-state"><p>No perfumes found</p></div></td></tr>'; return; }
+
+  body.innerHTML = list.map(p => {
+    const sizeStr = Object.keys(p.sizes || {}).map(s => s + 'ml').join(', ') || '—';
+    const imgHtml = p.image_url ? `<img class="table-img" src="${p.image_url}" alt="">` : `<div class="table-img-placeholder">${(p.brand||'?')[0]}</div>`;
+    const seasonIcons = {spring:'🌸', summer:'☀️', winter:'❄️', all:'🌍'};
+    return `<tr>
+      <td>${imgHtml}</td>
+      <td><strong style="font-size:0.9rem;">${p.name}</strong></td>
+      <td style="color:var(--text-muted);font-size:0.85rem;">${p.brand}</td>
+      <td>${seasonIcons[p.season] || ''} ${p.season || '—'}</td>
+      <td style="font-size:0.78rem;color:var(--text-muted);max-width:160px;">${sizeStr}</td>
+      <td>${p.discount > 0 ? `<span style="color:var(--success);font-weight:500;">${p.discount}%</span>` : '—'}</td>
+      <td>${p.stock_out ? '<span class="status-badge status-canceled">Out of Stock</span>' : '<span class="status-badge status-completed">In Stock</span>'}</td>
+      <td>
+        <div class="table-actions">
+          <button class="btn btn-sm btn-outline" onclick="editPerfume('${p.id}')">Edit</button>
+          <button class="btn btn-sm btn-danger" onclick="deletePerfume('${p.id}', '${p.name}')">Delete</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function searchInventory(q) {
+  const filtered = currentInventory.filter(p =>
+    (p.name || '').toLowerCase().includes(q.toLowerCase()) ||
+    (p.brand || '').toLowerCase().includes(q.toLowerCase())
+  );
+  renderInventory(filtered);
+}
+
+function editPerfume(id) {
+  const p = currentInventory.find(x => x.id === id);
+  if (!p) return;
+
+  editMode = true;
+  document.getElementById('edit-perfume-id').value = id;
+  document.getElementById('p-name').value = p.name || '';
+  document.getElementById('p-brand').value = p.brand || '';
+  document.getElementById('p-notes').value = p.notes || '';
+  document.getElementById('p-season').value = p.season || '';
+  document.getElementById('p-discount').value = p.discount || 0;
+  document.getElementById('p-stockout').checked = p.stock_out || false;
+  document.getElementById('p-image-url').value = p.image_url || '';
+
+  if (p.image_url) {
+    document.getElementById('image-preview-container').innerHTML = `<div class="image-preview-wrap"><img src="${p.image_url}" alt="preview"><button type="button" onclick="clearImage()">✕</button></div>`;
+  }
+
+  [1, 3, 5, 10, 15, 30, 50].forEach(s => {
+    const el = document.getElementById(`price-${s}`);
+    el.value = (p.sizes && p.sizes[s] != null) ? p.sizes[s] : '';
+  });
+
+  document.getElementById('perfume-form-title').textContent = 'Edit Perfume';
+  document.getElementById('perfume-submit-btn').textContent = 'Update Perfume';
+
+  adminNav('add-perfume', document.querySelector('.admin-nav-item:nth-child(3)'));
+  document.querySelectorAll('.admin-nav-item').forEach(b => b.classList.remove('active'));
+  const navBtns = document.querySelectorAll('.admin-nav-item');
+  navBtns[1].classList.add('active');
+  document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+  document.getElementById('section-add-perfume').classList.add('active');
+
+  window.scrollTo(0, 0);
+}
+
+async function deletePerfume(id, name) {
+  if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+  const { error } = await sb.from('perfumes').delete().eq('id', id);
+  if (error) { toast('Error deleting perfume', 'error'); return; }
+  toast(`"${name}" deleted`, 'success');
+  loadInventory();
+}
+
+// ─── ADMIN ORDERS ───
+async function loadAdminOrders() {
+  const statusFilter = document.getElementById('orders-status-filter')?.value;
+  const c = document.getElementById('admin-orders-list');
+  c.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+  try {
+    let query = sb.from('orders').select('*').order('created_at', { ascending: false });
+    if (statusFilter) query = query.eq('order_status', statusFilter);
+    const { data, error } = await query;
+    if (error) throw error;
+    currentAdminOrders = data || [];
+    renderAdminOrders(currentAdminOrders);
+  } catch(e) {
+    c.innerHTML = '<div class="empty-state"><p>Error loading orders</p></div>';
+  }
+}
+
+function searchAdminOrders(q) {
+  const filtered = currentAdminOrders.filter(o =>
+    (o.order_number || '').toLowerCase().includes(q.toLowerCase()) ||
+    (o.customer_name || '').toLowerCase().includes(q.toLowerCase()) ||
+    (o.phone || '').includes(q)
+  );
+  renderAdminOrders(filtered);
+}
+
+function renderAdminOrders(list) {
+  const c = document.getElementById('admin-orders-list');
+  if (!list.length) { c.innerHTML = '<div class="empty-state"><span class="serif">~</span><p>No orders found</p></div>'; return; }
+
+  c.innerHTML = list.map(o => {
+    const date = new Date(o.created_at);
+    const items = (o.items || []).map(i => `<tr><td>${i.name} (${i.brand})</td><td>${i.size}ml</td><td>${i.qty}</td><td>${formatCurrency(i.price * i.qty)}</td></tr>`).join('');
+    return `<div class="order-admin-card">
+      <div class="order-admin-header">
+        <div>
+          <div class="order-number">#${o.order_number}</div>
+          <div style="font-weight:500;">${o.customer_name}</div>
+          <div style="font-size:0.8rem;color:var(--text-muted);">${o.phone} · ${date.toLocaleDateString('en-BD')} ${date.toLocaleTimeString('en-BD', {hour:'2-digit',minute:'2-digit'})}</div>
+          <div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">${o.address}</div>
+          ${o.transaction_id ? `<div style="font-size:0.75rem;color:var(--mid);margin-top:2px;">TxID: ${o.transaction_id}</div>` : ''}
+        </div>
+        <div class="order-controls">
+          <select onchange="updatePaymentStatus('${o.id}', this.value)">
+            <option value="unpaid" ${o.payment_status === 'unpaid' ? 'selected' : ''}>Unpaid</option>
+            <option value="paid" ${o.payment_status === 'paid' ? 'selected' : ''}>Paid</option>
+          </select>
+          <select onchange="updateOrderStatus('${o.id}', this.value)">
+            <option value="order received" ${o.order_status === 'order received' ? 'selected' : ''}>Order Received</option>
+            <option value="dispatched" ${o.order_status === 'dispatched' ? 'selected' : ''}>Dispatched</option>
+            <option value="completed" ${o.order_status === 'completed' ? 'selected' : ''}>Completed</option>
+            <option value="canceled" ${o.order_status === 'canceled' ? 'selected' : ''}>Canceled</option>
+            <option value="refunded" ${o.order_status === 'refunded' ? 'selected' : ''}>Refunded</option>
+          </select>
+          <strong>${formatCurrency(o.total_amount)}</strong>
+        </div>
+      </div>
+      <table class="order-items-table">
+        <thead><tr><th>Item</th><th>Size</th><th>Qty</th><th>Amount</th></tr></thead>
+        <tbody>${items}</tbody>
+      </table>
+    </div>`;
+  }).join('');
+}
+
+async function updatePaymentStatus(orderId, status) {
+  const { error } = await sb.from('orders').update({ payment_status: status }).eq('id', orderId);
+  if (error) { toast('Update failed', 'error'); return; }
+  toast('Payment status updated', 'success');
+  const o = currentAdminOrders.find(x => x.id === orderId);
+  if (o) o.payment_status = status;
+}
+
+async function updateOrderStatus(orderId, status) {
+  const { error } = await sb.from('orders').update({ order_status: status }).eq('id', orderId);
+  if (error) { toast('Update failed', 'error'); return; }
+  toast('Order status updated', 'success');
+  const o = currentAdminOrders.find(x => x.id === orderId);
+  if (o) o.order_status = status;
+  loadOverview();
+}
+
+// ─── INIT ───
+document.addEventListener('DOMContentLoaded', () => {
+  saveCart();
+  loadShop();
+  document.getElementById('overview-date').textContent = new Date().toLocaleDateString('en-BD', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+});
+</script>
 </body>
 </html>
