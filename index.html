@@ -124,6 +124,37 @@
     padding: 5rem 2rem 4rem;
     position: relative;
     overflow: hidden;
+    background: var(--cream);
+    transition: background 0.5s;
+    min-height: 320px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .hero.has-banner { padding: 6rem 2rem 5rem; }
+  .hero-slides {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+  .hero-slide {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    opacity: 0;
+    transition: opacity 1s ease-in-out;
+  }
+  .hero-slide.active { opacity: 1; }
+  .hero-slide-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(26,22,17,0.35) 0%, rgba(26,22,17,0.55) 100%);
+  }
+  .hero-content {
+    position: relative;
+    z-index: 1;
   }
   .hero::before {
     content: '';
@@ -133,6 +164,7 @@
     width: 1px;
     height: 60px;
     background: linear-gradient(to bottom, transparent, var(--gold-light));
+    z-index: 1;
   }
   .hero h1 {
     font-size: clamp(2.5rem, 6vw, 5rem);
@@ -142,12 +174,59 @@
     letter-spacing: 0.05em;
     line-height: 1.1;
     margin-bottom: 1rem;
+    transition: color 0.5s;
   }
+  .hero.has-banner h1 { color: #fff; text-shadow: 0 2px 20px rgba(0,0,0,0.4); }
   .hero p {
     color: var(--text-muted);
     font-size: 0.9rem;
     letter-spacing: 0.2em;
     text-transform: uppercase;
+    transition: color 0.5s;
+  }
+  .hero.has-banner p { color: rgba(255,255,255,0.8); }
+  .hero-dots {
+    position: absolute;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 2;
+  }
+  .hero-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.4);
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.3s;
+  }
+  .hero-dot.active { background: #fff; width: 18px; border-radius: 3px; }
+  /* banner admin */
+  .banner-thumb-grid { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 1rem; }
+  .banner-thumb {
+    position: relative;
+    width: 120px;
+    height: 75px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 2px solid var(--light-border);
+  }
+  .banner-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .banner-thumb .del-btn {
+    position: absolute; top: 4px; right: 4px;
+    background: rgba(139,58,58,0.9); color: #fff;
+    border: none; border-radius: 3px; width: 20px; height: 20px;
+    font-size: 0.65rem; cursor: pointer; display: flex;
+    align-items: center; justify-content: center;
+  }
+  .banner-thumb .order-btn {
+    position: absolute; bottom: 4px; left: 4px;
+    background: rgba(26,22,17,0.75); color: var(--gold-light);
+    border: none; border-radius: 3px; padding: 1px 5px;
+    font-size: 0.6rem; cursor: pointer;
   }
 
   /* ─── SEASON TABS ─── */
@@ -781,9 +860,13 @@
 
 <!-- ═══════════════════════════ SHOP PAGE ═══════════════════════════ -->
 <div id="page-shop" class="page active">
-  <div class="hero">
-    <h1>Find Your Signature<br>Scent</h1>
-    <p>Premium Decants — Explore Before You Commit</p>
+  <div class="hero" id="hero-section">
+    <div class="hero-slides" id="hero-slides"></div>
+    <div class="hero-content">
+      <h1>Find Your Signature<br>Scent</h1>
+      <p>Premium Decants — Explore Before You Commit</p>
+    </div>
+    <div class="hero-dots" id="hero-dots"></div>
   </div>
 
   <div class="season-bar">
@@ -849,6 +932,7 @@
         <button class="admin-nav-item" onclick="adminNav('inventory', this)">Inventory</button>
         <button class="admin-nav-item" onclick="adminNav('orders', this)">Orders</button>
         <button class="admin-nav-item" onclick="adminNav('payment-methods', this)">Payment Methods</button>
+        <button class="admin-nav-item" onclick="adminNav('banners', this)">Hero Banners</button>
         <hr style="border:none;border-top:1px solid rgba(184,147,90,0.15);margin:1rem 1.5rem;">
         <button class="admin-nav-item" onclick="adminLogout()" style="color:rgba(255,100,100,0.7);">Sign Out</button>
       </aside>
@@ -1055,6 +1139,37 @@
 
           <div style="display:flex;justify-content:flex-end;margin-top:1rem;">
             <button class="btn btn-primary" onclick="savePaymentSettings()">Save Settings</button>
+          </div>
+        </div>
+
+        <!-- Banners -->
+        <div class="admin-section" id="section-banners">
+          <div class="admin-section-header">
+            <h2 class="admin-section-title">Hero Banners</h2>
+          </div>
+          <div class="admin-card">
+            <div class="admin-card-title">Upload Banner Images</div>
+            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1.25rem;">Upload 1 or more banners. Multiple banners will auto-slide on the homepage. Leave empty for the default text-only hero.</p>
+            <div class="image-upload-area" style="max-width:400px;">
+              <input type="file" id="banner-file-input" accept="image/*" multiple onchange="handleBannerUpload(event)">
+              <div style="font-size:2rem;color:var(--gold-light);">🖼️</div>
+              <p>Click to upload banner(s)</p>
+              <p style="font-size:0.72rem;">JPG, PNG, WEBP — Recommended 1400×500px or wider</p>
+            </div>
+            <div id="banner-upload-progress" style="margin-top:1rem;font-size:0.82rem;color:var(--mid);"></div>
+            <div class="banner-thumb-grid" id="banner-thumbs"></div>
+            <div style="margin-top:1.5rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+              <label style="font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--mid);">Slide Interval</label>
+              <select id="banner-interval" style="padding:6px 12px;border:1px solid var(--light-border);border-radius:var(--radius);font-family:'Jost',sans-serif;font-size:0.85rem;background:#fff;">
+                <option value="3000">3 seconds</option>
+                <option value="4000" selected>4 seconds</option>
+                <option value="5000">5 seconds</option>
+                <option value="7000">7 seconds</option>
+                <option value="10000">10 seconds</option>
+              </select>
+              <button class="btn btn-primary btn-sm" onclick="saveBannerSettings()">Save Banners</button>
+              <button class="btn btn-outline btn-sm" onclick="clearAllBanners()">Clear All</button>
+            </div>
           </div>
         </div>
 
@@ -1679,8 +1794,9 @@ function adminNav(section, btn) {
   if (section === 'inventory') loadInventory();
   if (section === 'orders') loadAdminOrders();
   if (section === 'overview') loadOverview();
-  if (section === 'add-perfume') resetPerfumeForm();
+  if (section === 'add-perfume' && !editMode) resetPerfumeForm();
   if (section === 'payment-methods') { loadPaymentSettings(); }
+  if (section === 'banners') { loadBanners(); }
 }
 
 function loadAdminContent() {
@@ -1807,7 +1923,16 @@ async function savePerfume(e) {
     if (error) throw error;
 
     toast(id ? 'Perfume updated!' : 'Perfume added to collection!', 'success');
+    editMode = false;
     resetPerfumeForm();
+    // Navigate to inventory after edit, stay on add-perfume after add
+    if (id) {
+      const invBtn = document.querySelector('.admin-nav-item:nth-child(3)');
+      document.querySelectorAll('.admin-nav-item').forEach(b => b.classList.remove('active'));
+      invBtn.classList.add('active');
+      document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+      document.getElementById('section-inventory').classList.add('active');
+    }
     loadInventory();
   } catch (err) {
     toast('Error saving perfume: ' + err.message, 'error');
@@ -2040,6 +2165,152 @@ async function updateOrderStatus(orderId, status) {
   loadOverview();
 }
 
+// ─── HERO BANNER SLIDESHOW ───
+let bannerData = { images: [], interval: 4000 };
+let bannerTimer = null;
+let bannerIndex = 0;
+
+async function loadBanners() {
+  try {
+    const { data } = await sb.from('settings').select('value').eq('key', 'banners').single();
+    if (data && data.value) {
+      bannerData = { ...bannerData, ...data.value };
+    }
+  } catch(e) { /* no banners yet, use default */ }
+  renderHeroBanners();
+  if (document.getElementById('banner-interval')) {
+    document.getElementById('banner-interval').value = bannerData.interval || 4000;
+    renderBannerThumbs();
+  }
+}
+
+function renderHeroBanners() {
+  const hero = document.getElementById('hero-section');
+  const slidesEl = document.getElementById('hero-slides');
+  const dotsEl = document.getElementById('hero-dots');
+  if (!hero || !slidesEl) return;
+
+  clearInterval(bannerTimer);
+  slidesEl.innerHTML = '';
+  dotsEl.innerHTML = '';
+
+  const imgs = bannerData.images || [];
+  if (!imgs.length) {
+    hero.classList.remove('has-banner');
+    return;
+  }
+
+  hero.classList.add('has-banner');
+  bannerIndex = 0;
+
+  imgs.forEach((url, i) => {
+    const slide = document.createElement('div');
+    slide.className = 'hero-slide' + (i === 0 ? ' active' : '');
+    slide.style.backgroundImage = `url('${url}')`;
+    slide.innerHTML = '<div class="hero-slide-overlay"></div>';
+    slidesEl.appendChild(slide);
+
+    if (imgs.length > 1) {
+      const dot = document.createElement('button');
+      dot.className = 'hero-dot' + (i === 0 ? ' active' : '');
+      dot.onclick = () => goToSlide(i);
+      dotsEl.appendChild(dot);
+    }
+  });
+
+  if (imgs.length > 1) {
+    bannerTimer = setInterval(() => goToSlide((bannerIndex + 1) % imgs.length), bannerData.interval || 4000);
+  }
+}
+
+function goToSlide(idx) {
+  const slides = document.querySelectorAll('.hero-slide');
+  const dots = document.querySelectorAll('.hero-dot');
+  if (!slides.length) return;
+  slides[bannerIndex].classList.remove('active');
+  if (dots[bannerIndex]) dots[bannerIndex].classList.remove('active');
+  bannerIndex = idx;
+  slides[bannerIndex].classList.add('active');
+  if (dots[bannerIndex]) dots[bannerIndex].classList.add('active');
+  clearInterval(bannerTimer);
+  const imgs = bannerData.images || [];
+  if (imgs.length > 1) {
+    bannerTimer = setInterval(() => goToSlide((bannerIndex + 1) % imgs.length), bannerData.interval || 4000);
+  }
+}
+
+// ── Banner admin ──
+function renderBannerThumbs() {
+  const grid = document.getElementById('banner-thumbs');
+  if (!grid) return;
+  const imgs = bannerData.images || [];
+  if (!imgs.length) { grid.innerHTML = '<p style="font-size:0.82rem;color:var(--text-muted);margin-top:0.5rem;">No banners uploaded yet.</p>'; return; }
+  grid.innerHTML = imgs.map((url, i) => `
+    <div class="banner-thumb">
+      <img src="${url}" alt="Banner ${i+1}">
+      <button class="del-btn" onclick="removeBannerImage(${i})" title="Remove">✕</button>
+      ${i > 0 ? `<button class="order-btn" onclick="moveBannerUp(${i})">↑</button>` : ''}
+    </div>`).join('');
+}
+
+async function handleBannerUpload(e) {
+  const files = Array.from(e.target.files);
+  if (!files.length) return;
+  const prog = document.getElementById('banner-upload-progress');
+  prog.textContent = `Uploading 0 / ${files.length}…`;
+
+  for (let i = 0; i < files.length; i++) {
+    try {
+      const url = await uploadToImageBB(files[i]);
+      if (!bannerData.images) bannerData.images = [];
+      bannerData.images.push(url);
+      prog.textContent = `Uploaded ${i+1} / ${files.length}…`;
+    } catch(err) {
+      toast(`Failed to upload image ${i+1}`, 'error');
+    }
+  }
+  prog.textContent = 'Upload complete!';
+  setTimeout(() => { prog.textContent = ''; }, 3000);
+  document.getElementById('banner-file-input').value = '';
+  renderBannerThumbs();
+  renderHeroBanners();
+}
+
+function removeBannerImage(i) {
+  bannerData.images.splice(i, 1);
+  renderBannerThumbs();
+  renderHeroBanners();
+}
+
+function moveBannerUp(i) {
+  const tmp = bannerData.images[i];
+  bannerData.images[i] = bannerData.images[i-1];
+  bannerData.images[i-1] = tmp;
+  renderBannerThumbs();
+  renderHeroBanners();
+}
+
+async function saveBannerSettings() {
+  bannerData.interval = parseInt(document.getElementById('banner-interval').value) || 4000;
+  try {
+    const { error } = await sb.from('settings').upsert([{ key: 'banners', value: bannerData }], { onConflict: 'key' });
+    if (error) throw error;
+    toast('Banners saved!', 'success');
+    renderHeroBanners();
+  } catch(e) {
+    toast('Error saving banners: ' + e.message, 'error');
+  }
+}
+
+async function clearAllBanners() {
+  if (!confirm('Remove all banners? Hero will return to default style.')) return;
+  bannerData.images = [];
+  renderBannerThumbs();
+  renderHeroBanners();
+  await sb.from('settings').upsert([{ key: 'banners', value: bannerData }], { onConflict: 'key' });
+  toast('All banners cleared', 'success');
+}
+
 // ─── INVENTORY BRAND FILTER ───
 function filterInventoryBrand() {
   const brand = document.getElementById('inv-brand-filter').value;
@@ -2205,6 +2476,7 @@ document.addEventListener('DOMContentLoaded', () => {
   saveCart();
   loadShop();
   loadPaymentSettings();
+  loadBanners();
   document.getElementById('overview-date').textContent = new Date().toLocaleDateString('en-BD', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
 });
 </script>
