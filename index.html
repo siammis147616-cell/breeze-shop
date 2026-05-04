@@ -844,7 +844,7 @@
 
 <!-- ═══════════════════════════ HEADER ═══════════════════════════ -->
 <header>
-  <div class="logo" onclick="showPage('shop')" style="cursor:pointer;" title="Go to homepage">
+  <div class="logo" onclick="logoClick()" style="cursor:pointer;" title="Go to homepage">
     Breeze
     <span>Perfume Decants</span>
   </div>
@@ -875,7 +875,7 @@
     <button class="season-tab" onclick="filterSeason('summer', this)">☀️ Summer</button>
     <button class="season-tab" onclick="filterSeason('winter', this)">❄️ Winter</button>
     <div class="search-wrapper">
-      <input type="text" id="shop-search" placeholder="Search name, brand, notes…" oninput="doSearch(this.value)">
+      <input type="text" id="shop-search" placeholder="Search name, brand, notes…" autocomplete="off" oninput="doSearch(this.value)">
     </div>
   </div>
 
@@ -897,7 +897,7 @@
     </div>
 
     <div class="track-input-row">
-      <input type="text" id="track-phone" placeholder="Your phone number (01XXXXXXXXX)" maxlength="11">
+      <input type="text" id="track-phone" placeholder="Your phone number (01XXXXXXXXX)" maxlength="11" autocomplete="off">
       <button class="btn btn-primary" onclick="trackOrders()">Find Orders</button>
     </div>
 
@@ -914,7 +914,7 @@
         <h2>Admin Access</h2>
         <p>Sign in to manage Breeze inventory and orders</p>
         <div class="form-group">
-          <input type="password" class="form-control" id="admin-password" placeholder="Enter password" onkeydown="if(event.key==='Enter')adminLogin()">
+          <input type="password" class="form-control" id="admin-password" placeholder="Enter password" autocomplete="new-password" onkeydown="if(event.key==='Enter')adminLogin()">
         </div>
         <button class="btn btn-primary btn-full" onclick="adminLogin()">Enter Dashboard</button>
         <p class="hint-text mt-1">Default: breeze2024 (change in config)</p>
@@ -969,16 +969,16 @@
               <div class="form-row">
                 <div class="form-group">
                   <label class="form-label">Perfume Name *</label>
-                  <input type="text" class="form-control" id="p-name" required placeholder="e.g. Black Orchid">
+                  <input type="text" class="form-control" id="p-name" required placeholder="e.g. Black Orchid" autocomplete="off">
                 </div>
                 <div class="form-group">
                   <label class="form-label">Brand *</label>
-                  <input type="text" class="form-control" id="p-brand" required placeholder="e.g. Tom Ford">
+                  <input type="text" class="form-control" id="p-brand" required placeholder="e.g. Tom Ford" autocomplete="off">
                 </div>
               </div>
               <div class="form-group">
                 <label class="form-label">Notes</label>
-                <input type="text" class="form-control" id="p-notes" placeholder="e.g. Black truffle, Bergamot, Jasmine, Patchouli">
+                <input type="text" class="form-control" id="p-notes" placeholder="e.g. Black truffle, Bergamot, Jasmine, Patchouli" autocomplete="off">
                 <p class="hint-text">Separate notes with commas</p>
               </div>
               <div class="form-row">
@@ -1046,7 +1046,7 @@
             <h2 class="admin-section-title">Inventory</h2>
           </div>
           <div class="admin-search">
-            <input type="text" placeholder="Search inventory…" oninput="searchInventory(this.value)" id="inv-search">
+            <input type="text" placeholder="Search inventory…" oninput="searchInventory(this.value)" id="inv-search" autocomplete="off">
             <select id="inv-season-filter" onchange="loadInventory()" style="padding:9px 14px;border:1px solid var(--light-border);border-radius:var(--radius);font-family:'Jost',sans-serif;font-size:0.85rem;background:#fff;outline:none;">
               <option value="">All Seasons</option>
               <option value="spring">Spring</option>
@@ -1089,7 +1089,7 @@
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">bKash Number</label>
-                <input type="text" class="form-control" id="pm-bkash-number" placeholder="01XXXXXXXXX">
+                <input type="text" class="form-control" id="pm-bkash-number" placeholder="01XXXXXXXXX" autocomplete="off">
               </div>
               <div class="form-group">
                 <label class="form-label">Account Type</label>
@@ -1179,7 +1179,7 @@
             <h2 class="admin-section-title">Orders</h2>
           </div>
           <div class="admin-search" style="flex-wrap:wrap;">
-            <input type="text" placeholder="Search by order #, name, phone…" oninput="searchAdminOrders(this.value)" id="orders-search">
+            <input type="text" placeholder="Search by order #, name, phone…" oninput="searchAdminOrders(this.value)" id="orders-search" autocomplete="off">
             <select id="orders-status-filter" onchange="applyOrderFilters()" style="padding:9px 14px;border:1px solid var(--light-border);border-radius:var(--radius);font-family:'Jost',sans-serif;font-size:0.85rem;background:#fff;outline:none;">
               <option value="">All Statuses</option>
               <option value="order received">Order Received</option>
@@ -1238,11 +1238,11 @@
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Full Name *</label>
-          <input type="text" class="form-control" id="o-name" placeholder="Your name">
+          <input type="text" class="form-control" id="o-name" placeholder="Your name" autocomplete="off">
         </div>
         <div class="form-group">
           <label class="form-label">Phone Number *</label>
-          <input type="tel" class="form-control" id="o-phone" placeholder="01XXXXXXXXX" maxlength="11">
+          <input type="tel" class="form-control" id="o-phone" placeholder="01XXXXXXXXX" maxlength="11" autocomplete="off">
         </div>
       </div>
       <div class="form-row">
@@ -1265,11 +1265,11 @@
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Road / Area *</label>
-          <input type="text" class="form-control" id="o-road" placeholder="Road name / area">
+          <input type="text" class="form-control" id="o-road" placeholder="Road name / area" autocomplete="off">
         </div>
         <div class="form-group">
           <label class="form-label">House / Flat No *</label>
-          <input type="text" class="form-control" id="o-house" placeholder="House/flat number">
+          <input type="text" class="form-control" id="o-house" placeholder="House/flat number" autocomplete="off">
         </div>
       </div>
       <div class="form-group">
@@ -1310,7 +1310,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">bKash Transaction ID *</label>
-          <input type="text" class="form-control" id="o-txid" placeholder="e.g. 8N6XXXXXXX">
+          <input type="text" class="form-control" id="o-txid" placeholder="e.g. 8N6XXXXXXX" autocomplete="off">
           <p class="hint-text">Found in your bKash SMS/app after sending</p>
         </div>
       </div>
@@ -1324,7 +1324,7 @@
         </div>
         <div class="form-group" style="margin-top:1rem;">
           <label class="form-label">Your Account No / Transaction Ref *</label>
-          <input type="text" class="form-control" id="o-bank-ref" placeholder="Sender account number or ref">
+          <input type="text" class="form-control" id="o-bank-ref" placeholder="Sender account number or ref" autocomplete="off">
           <p class="hint-text">We'll verify and confirm your payment</p>
         </div>
       </div>
@@ -1395,6 +1395,18 @@ const districts = {
 // ═══════════════════════════════════════════════════
 // UTILITIES
 // ═══════════════════════════════════════════════════
+function logoClick() {
+  const adminVisible = document.getElementById('admin-dashboard-view') &&
+    document.getElementById('admin-dashboard-view').style.display !== 'none' &&
+    document.getElementById('page-admin').classList.contains('active');
+  if (adminVisible) {
+    // Already in admin — reload admin overview
+    adminNav('overview', document.querySelector('.admin-nav-item'));
+  } else {
+    showPage('shop');
+  }
+}
+
 function showPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + id).classList.add('active');
@@ -1416,6 +1428,24 @@ function toast(msg, type = 'info') {
 }
 
 function formatCurrency(n) { return '৳' + Math.round(n).toLocaleString(); }
+
+function formatDate(dateStr) {
+  const d = new Date(dateStr);
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  const hh = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${dd}-${mm}-${yyyy} ${hh}:${min}`;
+}
+
+function formatDateOnly(dateStr) {
+  const d = new Date(dateStr);
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  return `${dd}-${mm}-${yyyy}`;
+}
 
 function generateOrderNum() {
   return 'BRZ-' + Date.now().toString(36).toUpperCase();
@@ -1738,7 +1768,7 @@ async function trackOrders() {
         <div class="order-card-header">
           <div>
             <div class="order-number">Order #${o.order_number}</div>
-            <div class="order-date">${date.toLocaleDateString('en-BD', {weekday:'short',year:'numeric',month:'long',day:'numeric'})} · ${date.toLocaleTimeString('en-BD', {hour:'2-digit',minute:'2-digit'})}</div>
+            <div class="order-date">${formatDate(o.created_at)}</div>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <span class="status-badge ${getStatusClass(o.payment_status)}">${o.payment_status || 'unpaid'}</span>
@@ -1801,7 +1831,7 @@ function adminNav(section, btn) {
 
 function loadAdminContent() {
   loadOverview();
-  document.getElementById('overview-date').textContent = new Date().toLocaleDateString('en-BD', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  document.getElementById('overview-date').textContent = formatDateOnly(new Date().toISOString());
 }
 
 async function loadOverview() {
@@ -1825,7 +1855,7 @@ async function loadOverview() {
     if (!ordData || !ordData.length) { recent.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;">No orders yet</p>'; return; }
 
     recent.innerHTML = ordData.map(o => {
-      const date = new Date(o.created_at).toLocaleDateString('en-BD');
+      const date = formatDateOnly(o.created_at);
       return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--light-border);">
         <div>
           <div style="font-weight:500;font-size:0.88rem;">${o.customer_name} <span style="font-size:0.75rem;color:var(--text-muted);">#${o.order_number}</span></div>
@@ -2120,7 +2150,7 @@ function renderAdminOrders(list) {
         <div>
           <div class="order-number">#${o.order_number}</div>
           <div style="font-weight:500;">${o.customer_name}</div>
-          <div style="font-size:0.8rem;color:var(--text-muted);">${o.phone} · ${date.toLocaleDateString('en-BD')} ${date.toLocaleTimeString('en-BD', {hour:'2-digit',minute:'2-digit'})}</div>
+          <div style="font-size:0.8rem;color:var(--text-muted);">${o.phone} · ${formatDate(o.created_at)}</div>
           <div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">${o.address}</div>
           ${o.transaction_id ? `<div style="font-size:0.75rem;color:var(--mid);margin-top:2px;">TxID: ${o.transaction_id}</div>` : ''}
         </div>
@@ -2477,7 +2507,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadShop();
   loadPaymentSettings();
   loadBanners();
-  document.getElementById('overview-date').textContent = new Date().toLocaleDateString('en-BD', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  document.getElementById('overview-date').textContent = formatDateOnly(new Date().toISOString());
 });
 </script>
 </body>
